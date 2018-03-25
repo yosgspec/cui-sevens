@@ -1,0 +1,540 @@
+#runtime "hsp3cl"
+#cmpopt varinit 1
+
+;全自動モード
+#define AUTO_MODE 0
+
+;トランプカードモジュール
+suitStrs@TrumpCard="▲","▼","◆","■","JO"
+powerStrs@TrumpCard="Ａ","２","３","４","５","６","７","８","９","10","Ｊ","Ｑ","Ｋ","KR"
+#module TrumpCard name,suit,power
+	#modcfunc tcName
+		return name
+	#modcfunc tcPower
+		return power
+	#modcfunc tcSuit
+		return suit
+
+	#define news(%1,%2,%3) newmod %1,TrumpCard,%2,%3
+	#modinit int _suit,int _power
+		name=suitStrs(_suit)+powerStrs(_power)
+		power=_power
+		suit=_suit
+	return
+#global
+
+;トランプの束モジュール
+#module TrumpDeck co,i,deck,count,hash
+	#modcfunc tdCount
+		return count
+
+	#define new(%1) dimtype %1,5:newmod %1,TrumpDeck
+	#modinit
+		randomize
+		#define deckDefine \
+			suits= \
+				0,0,0,0,0, 0,0,0,0,0, 0,0,0, \
+				1,1,1,1,1, 1,1,1,1,1, 1,1,1, \
+				2,2,2,2,2, 2,2,2,2,2, 2,2,2, \
+				3,3,3,3,3, 3,3,3,3,3, 3,3,3 \
+				/*,4,4*/ :\
+			powers= \
+				0,1,2,3,4,5, 6,7,8,9,10, 11,12, \
+				0,1,2,3,4,5, 6,7,8,9,10, 11,12, \
+				0,1,2,3,4,5, 6,7,8,9,10, 11,12, \
+				0,1,2,3,4,5, 6,7,8,9,10, 11,12 \
+				/*,13,13*/
+		deckDefine
+		foreach suits
+			news@TrumpCard deck,suits(cnt),powers(cnt)
+			hash(cnt)=cnt
+		loop
+		count=length(deck)
+
+		newlab co,1:return
+		gosub*trumpIter
+	return
+
+	#modfunc tdShuffle
+		foreach deck
+			r=rnd(count)
+			tmp=hash(cnt)
+			hash(cnt)=hash(r)
+			hash(r)=tmp
+		loop
+	return
+
+	*trumpIter
+		for i,0,length(suits)
+			_card=deck(hash(i))
+			newlab co,1:return
+		next
+	return
+
+	#modfunc local tdNext var card
+		gosub co
+		card=_card
+	return
+	#define global tdNext(%1,%2) dimtype %2,5:tdNext@TrumpDeck %1,%2
+#global
+
+;プレイヤーモジュール
+#module Player deck,cardCnt,pass,isGameOut,name
+	#modcfunc plName
+		return name
+	#modcfunc plCardCnt
+		return cardCnt
+	#modcfunc plPass
+		return pass
+	#modcfunc plIsGameOut
+		return plIsGameOut
+	#modfunc plRefDeck array _deck
+		if cardCnt!=0 {
+			dimtype _deck,5,cardCnt
+			repeat cardCnt
+				_deck(cnt)=deck(cnt)
+			loop
+		}
+		else: dim _deck
+	return
+
+	#define news(%1,%2) newmod %1,Player,%2
+	#modinit str _name
+		super@Player thismod,_name
+	return
+
+	#modfunc local super str _name
+		name=_name
+		cardCnt=0
+		pass=3
+		isGameOut=1
+	return
+
+	#modfunc plSortDeck
+		repeat cardCnt
+			i=cnt
+			repeat cardCnt-i
+				n=i+cnt
+				#define ctype sortValue(%1) tcSuit(deck(%1))*13+tcPower(deck(%1))
+				if sortValue(n)<sortValue(i) {
+					tmp=deck(i)
+					deck(i)=deck(n)
+					deck(n)=tmp
+				}
+			loop
+		loop
+	return
+
+	#modfunc plAddCard var card
+		deck(cardCnt)=card
+		cardCnt++
+	return
+
+	#modfunc plRemoveCard str cardName
+		repeat cardCnt
+			if tcName(deck.cnt)=cardName {
+				delID=cnt
+				repeat cardCnt-delID-1
+					deck(delID+cnt)=deck(delID+cnt+1)
+				loop
+				cardCnt--
+				break
+			}
+		loop
+	return
+
+	#modcfunc plExistCard str cardName
+		existCard=-1
+		repeat cardCnt
+			if tcName(deck.cnt)=cardName {
+				existCard=cnt
+				break
+			}
+		loop
+	return existCard
+
+	#modfunc plUsePass
+		pass--
+	return
+
+	#modfunc plGameOut
+		isGameOut=0
+	return
+#global
+
+;七並べプレイヤーモジュール
+#module SevensPlayer deck,cardCnt,pass,isGameOut,name,selectCardFn
+	#uselib "crtdll"
+	#cfunc getch "_getch"
+	#cfunc kbhit "_kbhit"
+
+	#define news(%1,%2) newmod %1,SevensPlayer,%2
+	#modinit str _name
+		super@Player thismod,_name
+		selectCardFn=*selectCard
+	return
+
+	;カーソルの移動
+	#defcfunc local move int _ch,int _csl,int max
+		csl=_csl
+		if _ch=$4b :csl-- ;左
+		if _ch=$4d :csl++ ;右
+		if csl<0 :csl=0
+		if max-1<csl :csl=max-1
+	return csl
+
+	;カーソルの表示
+	#deffunc local cursolShow array items,int _csl
+		dim slct,length(items)
+		slct(_csl)=1
+		s=""
+		foreach items
+			if slct(cnt): s+=strf("[%s]",items(cnt)): else: s+=strf("%s",items(cnt))
+		loop
+		mes strf("%s\r",s),1
+	return
+
+	#modfunc splSelectCard var _field,int _index
+		field=_field:index=_index
+		gosub selectCardFn
+	return
+
+	*selectCard
+		if 1!isGameOut: return
+		if 1!svCheckPlayNext(field,thismod) {
+			svGameOver field,thismod,index
+			svView field
+			mes name+" GameOver...\n"
+			return
+		}
+
+		mes strf("【%s】Cards: %d Pass: %d",name,cardCnt,pass)
+		sdim items
+		repeat cardCnt
+			items(cnt)=tcName(deck.cnt)
+		loop
+		if 0<pass: items(cardCnt)="PS:"+pass
+
+		while 1
+			cursol=0
+			cursolShow@SevensPlayer items,cursol
+			repeat
+				if kbhit() {
+					ch=getch()
+					if ch=$0d {
+						mes ""
+						break
+					}
+					if ch=$e0 {
+						cursol=move@SevensPlayer(getch(),cursol,length(items))
+						cursolShow@SevensPlayer items,cursol
+					}
+				}
+			loop
+
+			if 0<pass & length(items)-1=cursol {
+				pass--
+				svView field
+				mes strf("残りパスは%d回です。\n",pass)
+				_break
+			}
+			else:if svTryUseCard(field,thismod,deck(cursol)) {
+				svView field
+				mes strf("俺の切り札!! >「%s」\n",items(cursol))
+				if cardCnt=0 {
+					mes name+" Congratulations!!\n"
+					svGameClear field,thismod,index
+				}
+				_break
+			}
+			else {
+				mes "そのカードは出せないのじゃ…\n"
+				_continue
+			}
+		wend
+	return
+#global
+
+;七並べAIプレイヤーモジュール
+#module SevensAIPlayer deck,cardCnt,pass,isGameOut,name,selectCardFn
+	#define ctype pl(%1) %1@SevensPlayer
+	#define field field@SevensPlayer
+	#define index index@SevensPlayer
+
+	#define news(%1,%2) newmod %1,SevensAIPlayer,%2
+	#modinit str _name
+		super@Player thismod,_name
+		selectCardFn=*selectCard
+	return
+
+	*selectCard
+		if 1!pl(isGameOut): return
+		if 1!svCheckPlayNext(field,thismod) {
+			svGameOver field,thismod,index
+			svView field
+			mes pl(name)+"> もうだめ...\n"
+			return
+		}
+
+		mes strf("【%s】Cards: %d Pass: %d",pl(name),pl(cardCnt),pl(pass))
+		sdim items
+		repeat pl(cardCnt)
+			items(cnt)=tcName(pl(deck).cnt)
+		loop
+		if 0<pl(pass): items(pl(cardCnt))="PS:"+pl(pass)
+
+		mes "考え中...\r",1
+		wait 100
+
+		passCharge=0
+		while 1
+			cursol=rnd(length(items))
+
+			if 0<pl(pass) & length(items)-1=cursol {
+				if passCharge<5 {
+					passCharge++
+					_continue
+				}
+				pl(pass)--
+				mes strf("パスー (残り%d回)\n",pl(pass))
+				_break
+			}
+			else:if svTryUseCard(field,thismod,pl(deck).cursol) {
+				mes strf("これでも食らいなっ >「%s」\n",items(cursol))
+				if pl(cardCnt)=0 {
+					mes pl(name)+"> おっさき～\n"
+					svGameClear field,thismod,index
+				}
+				_break
+			}
+			else :_continue
+		wend
+	return
+#global
+
+;トランプの場モジュール
+#module TrumpField deck,cardCnt
+	#define new(%1) dimtype %1,5:newmod %1,TrumpField
+	#modfunc tfUseCard var _player,var card
+		deck(cardCnt)=card
+		plRemoveCard _player,tcName(card)
+		cardCnt++
+	return
+
+	#define global tfSortField(%1) plSortDeck %1
+
+	#modfunc tfView
+		foreach deck
+			mes tcName(deck.cnt)+" ",1
+		loop
+	return
+#global
+
+;七並べの列モジュール
+#module SevensLine cardLine
+	#const jokerIndex 13
+	#const sevenIndex 6
+	#modfunc slRefCardLine array _cardLine
+		dimtype _cardLine,5,length(cardLine)
+		foreach cardLine
+			_cardLine(cnt)=cardLine(cnt)
+		loop
+	return
+
+	#define news(%1) newmod %1,SevensLine
+	#modinit
+		dim cardLine,13
+		cardLine(sevenIndex)=1
+	return
+
+	#modcfunc rangeMin
+		i=sevenIndex
+		repeat sevenIndex
+			i--
+			if cardLine(i)=0: break
+		loop
+	return i
+
+	#modcfunc rangeMax
+		i=sevenIndex
+		repeat sevenIndex,sevenIndex
+			i++
+			if cardLine(i)=0: break
+		loop
+	return i
+
+	#modcfunc slCheckUseCard int power
+		switch power
+			case jokerIndex
+				return 1
+			case rangeMin(thismod)
+			case rangeMax(thismod)
+				return 1
+		swend
+	return 0
+	
+	#modfunc slUseCard int power
+		cardLine(power)=1
+	return
+#global
+
+;七並べモジュール
+#module Sevens field,cardCnt,lines,rank,clearCnt
+	#define new(%1,%2) dimtype %1,5:newmod %1,Sevens,%2
+	#modinit array players
+		dimtype lines,5,4
+		repeat length(lines)
+			news@SevensLine lines
+		loop
+
+		dimtype deck,5
+		dimtype cardSevens,5,4
+		repeat 4
+			cardSevenName=suitStrs@TrumpCard(cnt)+powerStrs@TrumpCard(6)
+			foreach players
+				cardSevenIndex=plExistCard(players.cnt,cardSevenName)
+				if -1<cardSevenIndex {
+					plRefDeck players(cnt),deck
+					tfUseCard thismod,players(cnt),deck(cardSevenIndex)
+					break
+				}
+			loop
+		loop
+		dim rank,length(players)
+		clearCnt=0
+	return
+
+	#define svUseCard(%1,%2) \
+		slUseCard lines(tcSuit(%2)),tcPower(%2) :\
+		tfUseCard thismod,%1,%2
+
+	#define ctype svCheckUseCard(%1) \
+		slCheckUseCard(lines(tcSuit(%1)),tcPower(%1))
+
+	#modcfunc svTryUseCard var _player,var card
+		if 1!svCheckUseCard(card): return 0
+		svUseCard _player,card
+	return 1
+
+	#modcfunc svCheckPlayNext var _player
+		if 0<plPass(_player): return 1
+		dimtype deck,5
+		plRefDeck _player,deck
+		isPlayGame=0
+		foreach deck
+			if svCheckUseCard(deck.cnt) {
+				isPlayGame=1
+				break
+			}
+		loop
+	return isPlayGame
+
+	#modfunc svGameClear var _player,int index
+		clearCnt++
+		rank(index)=clearCnt
+		plGameout _player
+	return
+
+	#modfunc svGameOver var _player,int index
+		rank(index)=-1
+		dimtype deck,5
+		plRefDeck _player,deck
+		foreach deck
+			svUseCard _player,deck(cnt)
+		loop
+		plGameout _player
+	return
+
+	#modcfunc svCheckGameEnd
+		isGameEnd=1
+		foreach rank
+			if rank(cnt)=0 {
+				isGameEnd=0
+				break
+			}
+		loop
+	return isGameEnd
+
+	#modfunc svView
+		dim cardLine,13
+		s=""
+		foreach lines
+			i=cnt
+			ss=""
+			slRefCardLine lines(i),cardLine
+			repeat 13
+				if cardLine(cnt) {
+					s+=suitStrs@TrumpCard(i)
+					ss+=powerStrs@TrumpCard(cnt)
+				}
+				else {
+					s+="◇"
+					ss+="◇"
+				}
+			loop
+			s+="\n"+ss+"\n"
+		loop
+		mes s
+	return
+
+	#modfunc svResult array players
+		mes "\n【Game Result】"
+		foreach rank
+			if 0<rank(cnt): rankStr=strf("%d位",rank.cnt): else: rankStr="GameOver..."
+			mes strf("%s: %s",plName(players.cnt),rankStr)
+		loop
+	return
+#global
+
+;メイン処理
+#module Program
+	#deffunc main
+		repeat 100
+			mes ""
+		loop
+mes {"
+/---------------------------------------/
+/                 七並べ                /
+/---------------------------------------/
+
+"}
+
+		new@TrumpDeck trp
+		tdShuffle trp
+
+		dimtype p,5,4
+		#if 1!AUTO_MODE@
+			news@SevensPlayer p,"Player"
+		#endif
+
+		repeat length(p)-(1!AUTO_MODE@),1
+			news@SevensAIPlayer p,"CPU "+cnt
+		loop
+
+		repeat tdCount(trp)
+			tdNext trp,card
+			plAddCard p(cnt\4),card
+		loop
+		foreach p
+			plSortDeck p(cnt)
+		loop
+
+		new@Sevens field,p
+
+		dimtype deck,5
+		*selectLoop
+			svView field
+			foreach p
+				splSelectCard p(cnt),field,cnt
+				if svCheckGameEnd(field): goto*exitSelect
+			loop
+		goto*selectLoop
+		*exitSelect
+
+		svView field
+		svResult field,p
+		sdim exit
+		input exit,,1
+	return
+#global
+main
