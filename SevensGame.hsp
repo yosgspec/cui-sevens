@@ -166,6 +166,51 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 	return
 #global
 
+;ƒJ[ƒ\ƒ‹‘I‘ğƒ‚ƒWƒ…[ƒ‹
+#module @CursorSelect
+	#uselib "crtdll"
+	#cfunc getch "_getch"
+	#cfunc kbhit "_kbhit"
+
+	;ƒJ[ƒ\ƒ‹‚ÌˆÚ“®
+	#deffunc local move int _ch,int max
+		if _ch=$4b :cursor-- ;¶
+		if _ch=$4d :cursor++ ;‰E
+		if cursor<0 :csl=0
+		if max-1<cursor :cursor=max-1
+	return
+
+	;ƒJ[ƒ\ƒ‹‚Ì•\¦
+	#deffunc local view array items
+		dim slct,length(items)
+		slct(cursor)=1
+		s=""
+		foreach items
+			if slct(cnt): s+=strf("[%s]",items(cnt)): else: s+=strf("%s",items(cnt))
+		loop
+		mes strf("%s\r",s),1
+	return
+
+	#defcfunc CursorSelect array items
+		cursor=0
+		itemsLen=length(items)
+		view@@CursorSelect items
+		repeat
+			if kbhit() {
+				ch=getch()
+				if ch=$0d {
+					mes ""
+					break
+				}
+				if ch=$e0 {
+					move@@CursorSelect getch(),itemsLen
+					view@@CursorSelect items
+				}
+			}
+		loop
+	return cursor
+#global
+
 ;µ•À‚×ƒvƒŒƒCƒ„[ƒ‚ƒWƒ…[ƒ‹
 #module SevensPlayer deck,cardCount,pass,isGameOut,name,selectCardFn
 	#uselib "crtdll"
@@ -176,26 +221,6 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 	#modinit str _name
 		super@Player thismod,_name
 		selectCardFn=*selectCard
-	return
-
-	;ƒJ[ƒ\ƒ‹‚ÌˆÚ“®
-	#defcfunc local move int _ch,int _csl,int max
-		csl=_csl
-		if _ch=$4b :csl-- ;¶
-		if _ch=$4d :csl++ ;‰E
-		if csl<0 :csl=0
-		if max-1<csl :csl=max-1
-	return csl
-
-	;ƒJ[ƒ\ƒ‹‚Ì•\¦
-	#deffunc local cursolShow array items,int _csl
-		dim slct,length(items)
-		slct(_csl)=1
-		s=""
-		foreach items
-			if slct(cnt): s+=strf("[%s]",items(cnt)): else: s+=strf("%s",items(cnt))
-		loop
-		mes strf("%s\r",s),1
 	return
 
 	#modfunc splSelectCard var _field,int _index
@@ -220,21 +245,7 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 		if 0<pass: items(cardCount)="PS:"+pass
 
 		while 1
-			cursol=0
-			cursolShow@SevensPlayer items,cursol
-			repeat
-				if kbhit() {
-					ch=getch()
-					if ch=$0d {
-						mes ""
-						break
-					}
-					if ch=$e0 {
-						cursol=move@SevensPlayer(getch(),cursol,length(items))
-						cursolShow@SevensPlayer items,cursol
-					}
-				}
-			loop
+			cursol=CursorSelect(items)
 
 			if 0<pass & length(items)-1=cursol {
 				pass--
@@ -383,7 +394,7 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 #global
 
 ;µ•À‚×ƒ‚ƒWƒ…[ƒ‹
-#module Sevens deck,cardCount,lines,rank,clearCount
+#module Sevens field,cardCount,lines,rank,clearCount
 	#define new(%1,%2) dimtype %1,5:newmod %1,Sevens,%2
 	#modinit array players
 		dimtype lines,5,4
