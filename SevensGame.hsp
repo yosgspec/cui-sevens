@@ -245,17 +245,17 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 		if 0<pass: items(cardCount)="PS:"+pass
 
 		while 1
-			cursol=CursorSelect(items)
+			cursor=CursorSelect(items)
 
-			if 0<pass & length(items)-1=cursol {
+			if 0<pass & length(items)-1=cursor {
 				pass--
 				svView field
 				mes strf("écÇËÉpÉXÇÕ%dâÒÇ≈Ç∑ÅB\n",pass)
 				_break
 			}
-			else:if svTryUseCard(field,thismod,deck(cursol)) {
+			else:if svTryUseCard(field,thismod,deck(cursor)) {
 				svView field
-				mes strf("â¥ÇÃêÿÇËéD!! >Åu%sÅv\n",items(cursol))
+				mes strf("â¥ÇÃêÿÇËéD!! >Åu%sÅv\n",items(cursor))
 				if cardCount=0 {
 					mes name+" Congratulations!!\n"
 					svGameClear field,thismod,index
@@ -303,9 +303,9 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 
 		passCharge=0
 		while 1
-			cursol=rnd(length(items))
+			cursor=rnd(length(items))
 
-			if 0<pl(pass) & length(items)-1=cursol {
+			if 0<pl(pass) & length(items)-1=cursor {
 				if passCharge<3 {
 					passCharge++
 					_continue
@@ -314,8 +314,8 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 				mes strf("ÉpÉXÅ[ (écÇË%dâÒ)\n",pl(pass))
 				_break
 			}
-			else:if svTryUseCard(field,thismod,pl(deck).cursol) {
-				mes strf("Ç±ÇÍÇ≈Ç‡êHÇÁÇ¢Ç»Ç¡ >Åu%sÅv\n",items(cursol))
+			else:if svTryUseCard(field,thismod,pl(deck).cursor) {
+				mes strf("Ç±ÇÍÇ≈Ç‡êHÇÁÇ¢Ç»Ç¡ >Åu%sÅv\n",items(cursor))
 				if pl(cardCount)=0 {
 					mes pl(name)+"> Ç®Ç¡Ç≥Ç´Å`\n"
 					svGameClear field,thismod,index
