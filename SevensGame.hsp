@@ -5,7 +5,7 @@
 #define AUTO_MODE 0
 
 ;ƒgƒ‰ƒ“ƒvƒJ[ƒhƒ‚ƒWƒ…[ƒ‹
-suitStrs@TrumpCard="£","¥","Ÿ","¡","JO"
+suitStrs@TrumpCard="£","¥","Ÿ","¡","Jo","JO"
 powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p","‚j","KR"
 #module TrumpCard name,suit,power
 	#modcfunc tcName
@@ -25,31 +25,35 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 
 ;ƒgƒ‰ƒ“ƒv‚Ì‘©ƒ‚ƒWƒ…[ƒ‹
 #module TrumpDeck co,i,deck,count,hash
+	#const suits 4
+	#const powers 13
+
 	#modcfunc tdCount
 		return count
 
 	#define new(%1) dimtype %1,5:newmod %1,TrumpDeck
 	#modinit
 		randomize
-		#define deckDefine \
-			suits= \
-				0,0,0,0,0, 0,0,0,0,0, 0,0,0, \
-				1,1,1,1,1, 1,1,1,1,1, 1,1,1, \
-				2,2,2,2,2, 2,2,2,2,2, 2,2,2, \
-				3,3,3,3,3, 3,3,3,3,3, 3,3,3 \
-				/*,4,4*/ :\
-			powers= \
-				0,1,2,3,4,5, 6,7,8,9,10, 11,12, \
-				0,1,2,3,4,5, 6,7,8,9,10, 11,12, \
-				0,1,2,3,4,5, 6,7,8,9,10, 11,12, \
-				0,1,2,3,4,5, 6,7,8,9,10, 11,12 \
-				/*,13,13*/
-		deckDefine
-		foreach suits
-			news@TrumpCard deck,suits(cnt),powers(cnt)
-			hash(cnt)=cnt
+		cardIndex=0
+
+		#define newCard(%1,%2) \
+			news@TrumpCard deck,%1,%2 :\
+			hash(cardIndex)=cardIndex :\
+			cardIndex++
+
+		repeat suits
+			suit=cnt
+			repeat powers
+				newCard suit,cnt
+			loop
 		loop
-		count=length(deck)
+
+		/* Joker
+		repeat 2,suits
+			newCard cnt,powers
+		loop
+		*/
+		count=cardIndex
 
 		newlab co,1:return
 		gosub*trumpIter
@@ -65,7 +69,7 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 	return
 
 	*trumpIter
-		for i,0,length(suits)
+		for i,0,count
 			_card=deck(hash(i))
 			newlab co,1:return
 		next
@@ -291,7 +295,7 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 			cursol=rnd(length(items))
 
 			if 0<pl(pass) & length(items)-1=cursol {
-				if passCharge<5 {
+				if passCharge<3 {
 					passCharge++
 					_continue
 				}
@@ -332,7 +336,7 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 
 ;µ•À‚×‚Ì—ñƒ‚ƒWƒ…[ƒ‹
 #module SevensLine cardLine
-	#const jokerIndex 13
+	#const jokerPower 13
 	#const sevenIndex 6
 	#modfunc slRefCardLine array _cardLine
 		dimtype _cardLine,5,length(cardLine)
@@ -365,7 +369,7 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 
 	#modcfunc slCheckUseCard int power
 		switch power
-			case jokerIndex
+			case jokerPower
 				return 1
 			case rangeMin(thismod)
 			case rangeMax(thismod)
