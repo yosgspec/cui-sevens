@@ -83,19 +83,19 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 #global
 
 ;ÉvÉåÉCÉÑÅ[ÉÇÉWÉÖÅ[Éã
-#module Player deck,cardCnt,pass,isGameOut,name
+#module Player deck,cardCount,pass,isGameOut,name
 	#modcfunc plName
 		return name
-	#modcfunc plCardCnt
-		return cardCnt
+	#modcfunc plCardCount
+		return cardCount
 	#modcfunc plPass
 		return pass
 	#modcfunc plIsGameOut
 		return plIsGameOut
 	#modfunc plRefDeck array _deck
-		if cardCnt!=0 {
-			dimtype _deck,5,cardCnt
-			repeat cardCnt
+		if cardCount!=0 {
+			dimtype _deck,5,cardCount
+			repeat cardCount
 				_deck(cnt)=deck(cnt)
 			loop
 		}
@@ -109,15 +109,15 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 
 	#modfunc local super str _name
 		name=_name
-		cardCnt=0
+		cardCount=0
 		pass=3
 		isGameOut=1
 	return
 
 	#modfunc plSortDeck
-		repeat cardCnt
+		repeat cardCount
 			i=cnt
-			repeat cardCnt-i
+			repeat cardCount-i
 				n=i+cnt
 				#define ctype sortValue(%1) tcSuit(deck(%1))*13+tcPower(deck(%1))
 				if sortValue(n)<sortValue(i) {
@@ -130,18 +130,18 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 	return
 
 	#modfunc plAddCard var card
-		deck(cardCnt)=card
-		cardCnt++
+		deck(cardCount)=card
+		cardCount++
 	return
 
 	#modfunc plRemoveCard str cardName
-		repeat cardCnt
+		repeat cardCount
 			if tcName(deck.cnt)=cardName {
 				delID=cnt
-				repeat cardCnt-delID-1
+				repeat cardCount-delID-1
 					deck(delID+cnt)=deck(delID+cnt+1)
 				loop
-				cardCnt--
+				cardCount--
 				break
 			}
 		loop
@@ -149,7 +149,7 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 
 	#modcfunc plExistCard str cardName
 		existCard=-1
-		repeat cardCnt
+		repeat cardCount
 			if tcName(deck.cnt)=cardName {
 				existCard=cnt
 				break
@@ -167,7 +167,7 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 #global
 
 ;éµï¿Ç◊ÉvÉåÉCÉÑÅ[ÉÇÉWÉÖÅ[Éã
-#module SevensPlayer deck,cardCnt,pass,isGameOut,name,selectCardFn
+#module SevensPlayer deck,cardCount,pass,isGameOut,name,selectCardFn
 	#uselib "crtdll"
 	#cfunc getch "_getch"
 	#cfunc kbhit "_kbhit"
@@ -212,12 +212,12 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 			return
 		}
 
-		mes strf("Åy%sÅzCards: %d Pass: %d",name,cardCnt,pass)
+		mes strf("Åy%sÅzCards: %d Pass: %d",name,cardCount,pass)
 		sdim items
-		repeat cardCnt
+		repeat cardCount
 			items(cnt)=tcName(deck.cnt)
 		loop
-		if 0<pass: items(cardCnt)="PS:"+pass
+		if 0<pass: items(cardCount)="PS:"+pass
 
 		while 1
 			cursol=0
@@ -245,7 +245,7 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 			else:if svTryUseCard(field,thismod,deck(cursol)) {
 				svView field
 				mes strf("â¥ÇÃêÿÇËéD!! >Åu%sÅv\n",items(cursol))
-				if cardCnt=0 {
+				if cardCount=0 {
 					mes name+" Congratulations!!\n"
 					svGameClear field,thismod,index
 				}
@@ -260,7 +260,7 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 #global
 
 ;éµï¿Ç◊AIÉvÉåÉCÉÑÅ[ÉÇÉWÉÖÅ[Éã
-#module SevensAIPlayer deck,cardCnt,pass,isGameOut,name,selectCardFn
+#module SevensAIPlayer deck,cardCount,pass,isGameOut,name,selectCardFn
 	#define ctype pl(%1) %1@SevensPlayer
 	#define field field@SevensPlayer
 	#define index index@SevensPlayer
@@ -280,12 +280,12 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 			return
 		}
 
-		mes strf("Åy%sÅzCards: %d Pass: %d",pl(name),pl(cardCnt),pl(pass))
+		mes strf("Åy%sÅzCards: %d Pass: %d",pl(name),pl(cardCount),pl(pass))
 		sdim items
-		repeat pl(cardCnt)
+		repeat pl(cardCount)
 			items(cnt)=tcName(pl(deck).cnt)
 		loop
-		if 0<pl(pass): items(pl(cardCnt))="PS:"+pl(pass)
+		if 0<pl(pass): items(pl(cardCount))="PS:"+pl(pass)
 
 		mes "çlÇ¶íÜ...\r",1
 		wait 100
@@ -305,7 +305,7 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 			}
 			else:if svTryUseCard(field,thismod,pl(deck).cursol) {
 				mes strf("Ç±ÇÍÇ≈Ç‡êHÇÁÇ¢Ç»Ç¡ >Åu%sÅv\n",items(cursol))
-				if pl(cardCnt)=0 {
+				if pl(cardCount)=0 {
 					mes pl(name)+"> Ç®Ç¡Ç≥Ç´Å`\n"
 					svGameClear field,thismod,index
 				}
@@ -317,12 +317,12 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 #global
 
 ;ÉgÉâÉìÉvÇÃèÍÉÇÉWÉÖÅ[Éã
-#module TrumpField deck,cardCnt
+#module TrumpField deck,cardCount
 	#define new(%1) dimtype %1,5:newmod %1,TrumpField
 	#modfunc tfUseCard var _player,var card
-		deck(cardCnt)=card
+		deck(cardCount)=card
 		plRemoveCard _player,tcName(card)
-		cardCnt++
+		cardCount++
 	return
 
 	#define global tfSortField(%1) plSortDeck %1
@@ -383,7 +383,7 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 #global
 
 ;éµï¿Ç◊ÉÇÉWÉÖÅ[Éã
-#module Sevens field,cardCnt,lines,rank,clearCnt
+#module Sevens deck,cardCount,lines,rank,clearCount
 	#define new(%1,%2) dimtype %1,5:newmod %1,Sevens,%2
 	#modinit array players
 		dimtype lines,5,4
@@ -405,7 +405,7 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 			loop
 		loop
 		dim rank,length(players)
-		clearCnt=0
+		clearCount=0
 	return
 
 	#define svUseCard(%1,%2) \
@@ -434,8 +434,8 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 	return isPlayGame
 
 	#modfunc svGameClear var _player,int index
-		clearCnt++
-		rank(index)=clearCnt
+		clearCount++
+		rank(index)=clearCount
 		plGameout _player
 	return
 
