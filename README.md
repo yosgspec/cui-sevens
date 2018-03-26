@@ -3,7 +3,7 @@
 
 # モジュール構成
 ![](https://github.com/yosgspec/cui-sevens/blob/master/TrumpGame.png?raw=true)
-```clj
+```cpp
 ;トランプカードモジュール
 #module TrumpCard name,suit,power
 	#modcfunc tcName return str name
