@@ -176,7 +176,7 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 	#deffunc local move int _ch,int max
 		if _ch=$4b :cursor-- ;ç∂
 		if _ch=$4d :cursor++ ;âE
-		if cursor<0 :csl=0
+		if cursor<0 :cursor=0
 		if max-1<cursor :cursor=max-1
 	return
 
@@ -213,10 +213,6 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 
 ;éµï¿Ç◊ÉvÉåÉCÉÑÅ[ÉÇÉWÉÖÅ[Éã
 #module SevensPlayer deck,cardCount,pass,isGameOut,name,selectCardFn
-	#uselib "crtdll"
-	#cfunc getch "_getch"
-	#cfunc kbhit "_kbhit"
-
 	#define news(%1,%2) newmod %1,SevensPlayer,%2
 	#modinit str _name
 		super@Player thismod,_name
@@ -404,6 +400,10 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 
 		dimtype deck,5
 		dimtype cardSevens,5,4
+		dim rank,length(players)
+		clearCount=0
+		#const tenhoh $FF
+
 		repeat 4
 			cardSevenName=suitStrs@TrumpCard(cnt)+powerStrs@TrumpCard(6)
 			foreach players
@@ -411,12 +411,15 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 				if -1<cardSevenIndex {
 					plRefDeck players(cnt),deck
 					tfUseCard thismod,players(cnt),deck(cardSevenIndex)
+					if plCardCount(players.cnt)=0 {
+						mes plName(players.cnt)+" Åy-- ìVòa --Åz\n"
+						rank(cnt)=tenhoh
+						plGameout players(cnt)
+					}
 					break
 				}
 			loop
 		loop
-		dim rank,length(players)
-		clearCount=0
 	return
 
 	#define svUseCard(%1,%2) \
@@ -495,7 +498,15 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 	#modfunc svResult array players
 		mes "\nÅyGame ResultÅz"
 		foreach rank
-			if 0<rank(cnt): rankStr=strf("%dà ",rank.cnt): else: rankStr="GameOver..."
+			if rank(cnt)=tenhoh {
+				rankStr="ìVòa"
+			}
+			else:if 0<rank(cnt) {
+				rankStr=strf("%dà ",rank.cnt)
+			}
+			else {
+				rankStr="GameOver..."
+			}
 			mes strf("%s: %s",plName(players.cnt),rankStr)
 		loop
 	return
@@ -517,18 +528,19 @@ mes {"
 		new@TrumpDeck trp
 		tdShuffle trp
 
-		dimtype p,5,4
+		#const playerNo 4
+		dimtype p,5,playerNo
 		#if 1!AUTO_MODE@
 			news@SevensPlayer p,"Player"
 		#endif
 
-		repeat length(p)-(1!AUTO_MODE@),1
+		repeat playerNo-(1!AUTO_MODE@),1
 			news@SevensAIPlayer p,"CPU "+cnt
 		loop
 
 		repeat tdCount(trp)
 			tdNext trp,card
-			plAddCard p(cnt\4),card
+			plAddCard p(cnt\playerNo),card
 		loop
 		foreach p
 			plSortDeck p(cnt)
