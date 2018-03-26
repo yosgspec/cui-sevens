@@ -3,6 +3,9 @@
 
 ;全自動モード
 #define AUTO_MODE 0
+;プレイヤー人数
+#define PLAYER_NUMBER 4
+
 
 ;トランプカードモジュール
 suitStrs@TrumpCard="▲","▼","◆","■","Jo","JO"
@@ -528,19 +531,18 @@ mes {"
 		new@TrumpDeck trp
 		tdShuffle trp
 
-		#const playerNo 4
-		dimtype p,5,playerNo
+		dimtype p,5,PLAYER_NUMBER@
 		#if 1!AUTO_MODE@
 			news@SevensPlayer p,"Player"
 		#endif
 
-		repeat playerNo-(1!AUTO_MODE@),1
+		repeat PLAYER_NUMBER@-(1!AUTO_MODE@),1
 			news@SevensAIPlayer p,"CPU "+cnt
 		loop
 
 		repeat tdCount(trp)
 			tdNext trp,card
-			plAddCard p(cnt\playerNo),card
+			plAddCard p(cnt\PLAYER_NUMBER@),card
 		loop
 		foreach p
 			plSortDeck p(cnt)
