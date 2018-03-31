@@ -100,9 +100,8 @@ class Player{
 //カーソル選択関数
 require("readline").emitKeypressEvents(process.stdin);
 process.stdin.setRawMode(true);
-const SelectCursor=(()=>{
-	var cursor;
-
+const SelectCursor=items=>{
+	var cursor=0;
 	//カーソルの移動
 	function move(x,max){
 		cursor+=x;
@@ -111,7 +110,7 @@ const SelectCursor=(()=>{
 	}
 
 	//カーソルの表示
-	function view(items){
+	function view(){
 		const select=Array(items.length).fill(false);
 		select[cursor]=true;
 		var s="";
@@ -121,9 +120,8 @@ const SelectCursor=(()=>{
 		process.stdout.write(`${s}\r`);
 	}
 
-	return items=>new Promise(resolve=>{
-		cursor=0;
-		view(items);
+	return new Promise(resolve=>{
+		view();
 		process.stdin.on("keypress",function self(k,ch){
 			if(ch.name=="return"){
 				console.log();
@@ -132,10 +130,10 @@ const SelectCursor=(()=>{
 			}
 			if(ch.name=="right") move(1,items.length);
 			if(ch.name=="left") move(-1,items.length);
-			view(items);
+			view();
 		});
 	});
-})();
+};
 
 //七並べプレイヤークラス
 class SevensPlayer extends Player{

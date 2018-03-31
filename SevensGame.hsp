@@ -162,29 +162,31 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 #module @SelectCursor
 	#uselib "crtdll"
 	#cfunc getch "_getch"
-	#cfunc kbhit "_kbhit"
 
 	;ƒJ[ƒ\ƒ‹‚ÌˆÚ“®
 	#deffunc local move int x,int max
 		cursor+=x
-		if cursor<0 :cursor=0
-		if max-1<cursor :cursor=max-1
-	return
-
-	;ƒJ[ƒ\ƒ‹‚Ì•\¦
-	#deffunc local view array items
-		dim select,length(items)
-		select(cursor)=1
-		s=""
-		foreach items
-			if select(cnt): s+=strf("[%s]",items(cnt)): else: s+=strf("%s",items(cnt))
-		loop
-		mes strf("%s\r",s),1
+		if cursor<0: cursor=0
+		if max-1<cursor: cursor=max-1
 	return
 
 	#defcfunc SelectCursor array items
 		cursor=0
-		view@@SelectCursor items
+		goto*begin
+
+		;ƒJ[ƒ\ƒ‹‚Ì•\¦
+		*view
+			dim select,length(items)
+			select(cursor)=1
+			s=""
+			foreach items
+				if select(cnt): s+=strf("[%s]",items(cnt)): else: s+=items(cnt)
+			loop
+			mes strf("%s\r",s),1
+		return
+
+		*begin
+		gosub*view
 		repeat
 			ch=getch()
 			if ch=$0d {
@@ -193,10 +195,10 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 			}
 			if ch=$e0 {
 				ch=getch()
-				if ch=$4b :move@@SelectCursor -1,length(items);¶
-				if ch=$4d :move@@SelectCursor 1,length(items) ;‰E
+				if ch=$4b: move -1,length(items)	;¶
+				if ch=$4d: move 1,length(items) 	;‰E
 			}
-			view@@SelectCursor items
+			gosub*view
 		loop
 	return cursor
 #global
@@ -208,7 +210,7 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 
 	#define news(%1,%2,%3) newmod %1,SevensPlayer,%2,%3
 	#modinit str _name,int _pass
-		super@SevensPlayer thismod,_name,_pass
+		super thismod,_name,_pass
 		selectCardFn=*selectCard
 	return
 	#modfunc local super str _name,int _pass
