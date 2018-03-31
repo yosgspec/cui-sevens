@@ -26,7 +26,6 @@
 	use TrumpCard
 	#modcfunc plName return str name
 	#modcfunc plCardCount return int cardCount
-	#modcfunc plPass return int pass
 	#modcfunc plIsGameOut return int isGameOut
 	#modfunc plRefDeck ref TrumpCard() _deck
 	#define news@Player ref Player pl,str _name
@@ -35,7 +34,6 @@
 	#modfunc plAddCard TrumpCard card
 	#modfunc plRemoveCard str cardName
 	#modcfunc plExistCard str cardName,return int existCard
-	#modfunc plUsePass
 	#modfunc plGameOut
 #global
 
@@ -48,6 +46,7 @@
 #module SevensPlayer deck,cardCount,pass,isGameOut,name,selectCardFn
 	use Sevens
 	extend Player
+	#modcfunc splPass return int pass
 	#define news@SevensAIPlaye ref SevensPlayer spl
 	#modfunc splSelectCard Sevens _field,int _index
 #global
