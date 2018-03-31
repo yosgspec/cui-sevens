@@ -2,10 +2,11 @@
 #cmpopt varinit 1
 
 ;‘S©“®ƒ‚[ƒh
-#define AUTO_MODE 0
+#const AUTO_MODE 0
 ;ƒvƒŒƒCƒ„[l”
-#define PLAYER_NUMBER 4
-
+#const PLAYER_NUMBER 4
+;ƒpƒX‰ñ”
+#const PASS_NUMBER 3
 
 ;ƒgƒ‰ƒ“ƒvƒJ[ƒhƒ‚ƒWƒ…[ƒ‹
 suitStrs@TrumpCard="£","¥","Ÿ","¡","Jo","JO"
@@ -27,7 +28,7 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 #global
 
 ;ƒgƒ‰ƒ“ƒv‚Ì‘©ƒ‚ƒWƒ…[ƒ‹
-#module TrumpDeck co,i,deck,count,hash
+#module TrumpDeck g,i,deck,count,hash
 	#const suits 4
 	#const powers 13
 
@@ -52,13 +53,12 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 		loop
 
 		/* Joker
-		repeat 2,suits
-			newCard cnt,powers
-		loop
+		newCard 4,powers
+		newCard 5,powers
 		*/
 		count=cardIndex
 
-		newlab co,1:return
+		newlab g,1:return
 		gosub*trumpIter
 	return
 
@@ -74,31 +74,27 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 	*trumpIter
 		for i,0,count
 			_card=deck(hash(i))
-			newlab co,1:return
+			newlab g,1:return
 		next
 	return
 
-	#modfunc local tdNext var card
-		gosub co
+	#modfunc local tdDraw var card
+		gosub g
 		card=_card
 	return
-	#define global tdNext(%1,%2) dimtype %2,5:tdNext@TrumpDeck %1,%2
+	#define global tdDraw(%1,%2) dimtype %2,5:tdDraw@TrumpDeck %1,%2
 #global
 
 ;ƒvƒŒƒCƒ„[ƒ‚ƒWƒ…[ƒ‹
-#module Player deck,cardCount,pass,isGameOut,name
+#module Player deck,deckCount,isGameOut,name
 	#modcfunc plName
 		return name
-	#modcfunc plCardCount
-		return cardCount
-	#modcfunc plPass
-		return pass
 	#modcfunc plIsGameOut
 		return plIsGameOut
 	#modfunc plRefDeck array _deck
-		if cardCount!=0 {
-			dimtype _deck,5,cardCount
-			repeat cardCount
+		if deckCount!=0 {
+			dimtype _deck,5,deckCount
+			repeat deckCount
 				_deck(cnt)=deck(cnt)
 			loop
 		}
@@ -109,42 +105,39 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 	#modinit str _name
 		super@Player thismod,_name
 	return
-
 	#modfunc local super str _name
 		name=_name
-		cardCount=0
-		pass=3
-		isGameOut=1
+		deckCount=0
+		isGameOut=0
 	return
 
 	#modfunc plSortDeck
-		repeat cardCount
+		repeat deckCount
 			i=cnt
-			repeat cardCount-i
-				n=i+cnt
+			repeat deckCount-i,i
 				#define ctype sortValue(%1) tcSuit(deck(%1))*13+tcPower(deck(%1))
-				if sortValue(n)<sortValue(i) {
+				if sortValue(cnt)<sortValue(i) {
 					tmp=deck(i)
-					deck(i)=deck(n)
-					deck(n)=tmp
+					deck(i)=deck(cnt)
+					deck(cnt)=tmp
 				}
 			loop
 		loop
 	return
 
 	#modfunc plAddCard var card
-		deck(cardCount)=card
-		cardCount++
+		deck(deckCount)=card
+		deckCount++
 	return
 
 	#modfunc plRemoveCard str cardName
-		repeat cardCount
+		repeat deckCount
 			if tcName(deck.cnt)=cardName {
 				delID=cnt
-				repeat cardCount-delID-1
+				repeat deckCount-delID-1
 					deck(delID+cnt)=deck(delID+cnt+1)
 				loop
-				cardCount--
+				deckCount--
 				break
 			}
 		loop
@@ -152,7 +145,7 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 
 	#modcfunc plExistCard str cardName
 		existCard=-1
-		repeat cardCount
+		repeat deckCount
 			if tcName(deck.cnt)=cardName {
 				existCard=cnt
 				break
@@ -160,66 +153,67 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 		loop
 	return existCard
 
-	#modfunc plUsePass
-		pass--
-	return
-
 	#modfunc plGameOut
-		isGameOut=0
+		isGameOut=1
 	return
 #global
 
 ;ƒJ[ƒ\ƒ‹‘I‘ğƒ‚ƒWƒ…[ƒ‹
-#module @CursorSelect
+#module @SelectCursor
 	#uselib "crtdll"
 	#cfunc getch "_getch"
 	#cfunc kbhit "_kbhit"
 
 	;ƒJ[ƒ\ƒ‹‚ÌˆÚ“®
-	#deffunc local move int _ch,int max
-		if _ch=$4b :cursor-- ;¶
-		if _ch=$4d :cursor++ ;‰E
+	#deffunc local move int x,int max
+		cursor+=x
 		if cursor<0 :cursor=0
 		if max-1<cursor :cursor=max-1
 	return
 
 	;ƒJ[ƒ\ƒ‹‚Ì•\¦
 	#deffunc local view array items
-		dim slct,length(items)
-		slct(cursor)=1
+		dim select,length(items)
+		select(cursor)=1
 		s=""
 		foreach items
-			if slct(cnt): s+=strf("[%s]",items(cnt)): else: s+=strf("%s",items(cnt))
+			if select(cnt): s+=strf("[%s]",items(cnt)): else: s+=strf("%s",items(cnt))
 		loop
 		mes strf("%s\r",s),1
 	return
 
-	#defcfunc CursorSelect array items
+	#defcfunc SelectCursor array items
 		cursor=0
-		itemsLen=length(items)
-		view@@CursorSelect items
+		view@@SelectCursor items
 		repeat
-			if kbhit() {
-				ch=getch()
-				if ch=$0d {
-					mes ""
-					break
-				}
-				if ch=$e0 {
-					move@@CursorSelect getch(),itemsLen
-					view@@CursorSelect items
-				}
+			ch=getch()
+			if ch=$0d {
+				mes
+				break
 			}
+			if ch=$e0 {
+				ch=getch()
+				if ch=$4b :move@@SelectCursor -1,length(items);¶
+				if ch=$4d :move@@SelectCursor 1,length(items) ;‰E
+			}
+			view@@SelectCursor items
 		loop
 	return cursor
 #global
 
 ;µ•À‚×ƒvƒŒƒCƒ„[ƒ‚ƒWƒ…[ƒ‹
-#module SevensPlayer deck,cardCount,pass,isGameOut,name,selectCardFn
-	#define news(%1,%2) newmod %1,SevensPlayer,%2
-	#modinit str _name
-		super@Player thismod,_name
+#module SevensPlayer deck,deckCount,isGameOut,name,pass,selectCardFn
+	#modcfunc splPass
+		return pass
+
+	#define news(%1,%2,%3) newmod %1,SevensPlayer,%2,%3
+	#modinit str _name,int _pass
+		super@SevensPlayer thismod,_name,_pass
 		selectCardFn=*selectCard
+	return
+	#modfunc local super str _name,int _pass
+		super@Player thismod,_name
+		pass=_pass
 	return
 
 	#modfunc splSelectCard var _field,int _index
@@ -228,7 +222,7 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 	return
 
 	*selectCard
-		if 1!isGameOut: return
+		if isGameOut: return
 		if 1!svCheckPlayNext(field,thismod) {
 			svGameOver field,thismod,index
 			svView field
@@ -236,117 +230,120 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 			return
 		}
 
-		mes strf("y%szCards: %d Pass: %d",name,cardCount,pass)
+		mes strf("y%szCards: %d Pass: %d",name,deckCount,pass)
 		sdim items
-		repeat cardCount
+		repeat deckCount
 			items(cnt)=tcName(deck.cnt)
 		loop
-		if 0<pass: items(cardCount)="PS:"+pass
+		if 0<pass: items(deckCount)="PS:"+pass
 
-		while 1
-			cursor=CursorSelect(items)
+		repeat
+			cursor=SelectCursor(items)
 
 			if 0<pass & length(items)-1=cursor {
 				pass--
 				svView field
 				mes strf("c‚èƒpƒX‚Í%d‰ñ‚Å‚·B\n",pass)
-				_break
+				break
 			}
 			else:if svTryUseCard(field,thismod,deck(cursor)) {
 				svView field
 				mes strf("‰´‚ÌØ‚èD!! >u%sv\n",items(cursor))
-				if cardCount=0 {
+				if deckCount=0 {
 					mes name+" Congratulations!!\n"
 					svGameClear field,thismod,index
 				}
-				_break
+				break
 			}
 			else {
 				mes "‚»‚ÌƒJ[ƒh‚Ío‚¹‚È‚¢‚Ì‚¶‚ác\n"
-				_continue
+				continue
 			}
-		wend
+		loop
 	return
 #global
 
 ;µ•À‚×AIƒvƒŒƒCƒ„[ƒ‚ƒWƒ…[ƒ‹
-#module SevensAIPlayer deck,cardCount,pass,isGameOut,name,selectCardFn
-	#define ctype pl(%1) %1@SevensPlayer
+#module SevensAIPlayer deck,deckCount,isGameOut,name,pass,selectCardFn
+	#define ctype me(%1) %1@SevensPlayer
 	#define field field@SevensPlayer
 	#define index index@SevensPlayer
 
-	#define news(%1,%2) newmod %1,SevensAIPlayer,%2
-	#modinit str _name
-		super@Player thismod,_name
+	#define news(%1,%2,%3) newmod %1,SevensAIPlayer,%2,%3
+	#modinit str _name,int _pass
+		super@SevensPlayer thismod,_name,_pass
 		selectCardFn=*selectCard
 	return
 
 	*selectCard
-		if 1!pl(isGameOut): return
+		if me(isGameOut): return
 		if 1!svCheckPlayNext(field,thismod) {
 			svGameOver field,thismod,index
 			svView field
-			mes pl(name)+"> ‚à‚¤‚¾‚ß...\n"
+			mes me(name)+"> ‚à‚¤‚¾‚ß...\n"
 			return
 		}
 
-		mes strf("y%szCards: %d Pass: %d",pl(name),pl(cardCount),pl(pass))
+		mes strf("y%szCards: %d Pass: %d",me(name),me(deckCount),me(pass))
 		sdim items
-		repeat pl(cardCount)
-			items(cnt)=tcName(pl(deck).cnt)
+		repeat me(deckCount)
+			items(cnt)=tcName(me(deck).cnt)
 		loop
-		if 0<pl(pass): items(pl(cardCount))="PS:"+pl(pass)
+		if 0<me(pass): items(me(deckCount))="PS:"+me(pass)
 
 		mes "l‚¦’†...\r",1
 		wait 100
 
 		passCharge=0
-		while 1
+		repeat
 			cursor=rnd(length(items))
 
-			if 0<pl(pass) & length(items)-1=cursor {
+			if 0<me(pass) & length(items)-1=cursor {
 				if passCharge<3 {
 					passCharge++
-					_continue
+					continue
 				}
-				pl(pass)--
-				mes strf("ƒpƒX[ (c‚è%d‰ñ)\n",pl(pass))
-				_break
+				me(pass)--
+				mes strf("ƒpƒX[ (c‚è%d‰ñ)\n",me(pass))
+				break
 			}
-			else:if svTryUseCard(field,thismod,pl(deck).cursor) {
+			else:if svTryUseCard(field,thismod,me(deck).cursor) {
 				mes strf("‚±‚ê‚Å‚àH‚ç‚¢‚È‚Á >u%sv\n",items(cursor))
-				if pl(cardCount)=0 {
-					mes pl(name)+"> ‚¨‚Á‚³‚«`\n"
+				if me(deckCount)=0 {
+					mes me(name)+"> ‚¨‚Á‚³‚«`\n"
 					svGameClear field,thismod,index
 				}
-				_break
+				break
 			}
-			else :_continue
-		wend
+			else :continue
+		loop
 	return
 #global
 
 ;ƒgƒ‰ƒ“ƒv‚Ìêƒ‚ƒWƒ…[ƒ‹
-#module TrumpField deck,cardCount
+#module TrumpField deck,deckCount
 	#define new(%1) dimtype %1,5:newmod %1,TrumpField
 	#modfunc tfUseCard var _player,var card
-		deck(cardCount)=card
+		deck(deckCount)=card
 		plRemoveCard _player,tcName(card)
-		cardCount++
+		deckCount++
 	return
 
-	#define global tfSortField(%1) plSortDeck %1
+	#define global tfSortDeck(%1) plSortDeck %1
 
 	#modfunc tfView
+		joinStr=""
 		foreach deck
-			mes tcName(deck.cnt)+" ",1
+			if cnt!=0: joinStr+=" "
+			joinStr+=tcName(deck.cnt)
 		loop
+		mes joinStr
 	return
 #global
 
 ;µ•À‚×‚Ì—ñƒ‚ƒWƒ…[ƒ‹
 #module SevensLine cardLine
-	#const jokerPower 13
+	#const jokerIndex 13
 	#const sevenIndex 6
 	#modfunc slRefCardLine array _cardLine
 		dimtype _cardLine,5,length(cardLine)
@@ -379,21 +376,21 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 
 	#modcfunc slCheckUseCard int power
 		switch power
-			case jokerPower
+			case jokerIndex
 				return 1
 			case rangeMin(thismod)
 			case rangeMax(thismod)
 				return 1
 		swend
 	return 0
-	
+
 	#modfunc slUseCard int power
 		cardLine(power)=1
 	return
 #global
 
 ;µ•À‚×ƒ‚ƒWƒ…[ƒ‹
-#module Sevens field,cardCount,lines,rank,clearCount
+#module Sevens deck,deckCount,lines,rank,clearCount
 	#define new(%1,%2) dimtype %1,5:newmod %1,Sevens,%2
 	#modinit array players
 		dimtype lines,5,4
@@ -401,8 +398,7 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 			news@SevensLine lines
 		loop
 
-		dimtype deck,5
-		dimtype cardSevens,5,4
+		dimtype _deck,5
 		dim rank,length(players)
 		clearCount=0
 		#const tenhoh $FF
@@ -410,19 +406,23 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 		repeat 4
 			cardSevenName=suitStrs@TrumpCard(cnt)+powerStrs@TrumpCard(6)
 			foreach players
-				cardSevenIndex=plExistCard(players.cnt,cardSevenName)
+				p=players.cnt
+				cardSevenIndex=plExistCard(p,cardSevenName)
 				if -1<cardSevenIndex {
-					plRefDeck players(cnt),deck
-					tfUseCard thismod,players(cnt),deck(cardSevenIndex)
-					if plCardCount(players.cnt)=0 {
-						mes plName(players.cnt)+" y-- “V˜a --z\n"
+					plRefDeck p,_deck
+					card=_deck(cardSevenIndex)
+					mes strf("%s ‚ª%s‚ğ’u‚«‚Ü‚µ‚½B",plName(p),tcName(card))
+					tfUseCard thismod,p,card
+					if length(_deck)=0 {
+						mes plName(p)+" y-- “V˜a --z\n"
 						rank(cnt)=tenhoh
-						plGameout players(cnt)
+						plGameOut p
 					}
 					break
 				}
 			loop
 		loop
+		mes
 	return
 
 	#define svUseCard(%1,%2) \
@@ -432,18 +432,18 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 	#define ctype svCheckUseCard(%1) \
 		slCheckUseCard(lines(tcSuit(%1)),tcPower(%1))
 
-	#modcfunc svTryUseCard var _player,var card
-		if 1!svCheckUseCard(card): return 0
-		svUseCard _player,card
+	#modcfunc svTryUseCard var _player,var _card
+		if 1!svCheckUseCard(_card): return 0
+		svUseCard _player,_card
 	return 1
 
 	#modcfunc svCheckPlayNext var _player
-		if 0<plPass(_player): return 1
-		dimtype deck,5
-		plRefDeck _player,deck
+		if 0<splPass(_player): return 1
+		dimtype _deck,5
+		plRefDeck _player,_deck
 		isPlayGame=0
-		foreach deck
-			if svCheckUseCard(deck.cnt) {
+		foreach _deck
+			if svCheckUseCard(_deck.cnt) {
 				isPlayGame=1
 				break
 			}
@@ -453,17 +453,18 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 	#modfunc svGameClear var _player,int index
 		clearCount++
 		rank(index)=clearCount
-		plGameout _player
+		plGameOut _player
 	return
 
 	#modfunc svGameOver var _player,int index
 		rank(index)=-1
-		dimtype deck,5
-		plRefDeck _player,deck
-		foreach deck
-			svUseCard _player,deck(cnt)
+		dimtype _deck,5
+		plRefDeck _player,_deck
+		deckLen=length(_deck)
+		repeat deckLen,1
+			svUseCard _player,_deck(deckLen-cnt)
 		loop
-		plGameout _player
+		plGameOut _player
 	return
 
 	#modcfunc svCheckGameEnd
@@ -519,7 +520,7 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 #module Program
 	#deffunc main
 		repeat 100
-			mes ""
+			mes
 		loop
 mes {"
 /---------------------------------------/
@@ -533,17 +534,18 @@ mes {"
 
 		dimtype p,5,PLAYER_NUMBER@
 		#if 1!AUTO_MODE@
-			news@SevensPlayer p,"Player"
+			news@SevensPlayer p,"Player",PASS_NUMBER@
 		#endif
 
 		repeat PLAYER_NUMBER@-(1!AUTO_MODE@),1
-			news@SevensAIPlayer p,"CPU "+cnt
+			news@SevensAIPlayer p,"CPU "+cnt,PASS_NUMBER@
 		loop
 
 		repeat tdCount(trp)
-			tdNext trp,card
+			tdDraw trp,card
 			plAddCard p(cnt\PLAYER_NUMBER@),card
 		loop
+
 		foreach p
 			plSortDeck p(cnt)
 		loop
