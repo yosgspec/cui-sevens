@@ -7,7 +7,7 @@ const PLAYER_NUMBER=4;
 //パス回数
 const PASS_NUMBER=3
 
-//トランプカードモジュール
+//トランプカードクラス
 class TrumpCard{
 	constructor(suit,power){
 		this.name=TrumpCard.suitStrs[suit]+TrumpCard.powerStrs[power];
@@ -19,7 +19,7 @@ class TrumpCard{
 TrumpCard.suitStrs=["▲","▼","◆","■","Jo","JO"];
 TrumpCard.powerStrs=["Ａ","２","３","４","５","６","７","８","９","10","Ｊ","Ｑ","Ｋ","KR"];
 
-//トランプの束モジュール
+//トランプの束クラス
 const TrumpDeck=(()=>{
 	const suits=4;
 	const powers=13;
@@ -67,7 +67,7 @@ const TrumpDeck=(()=>{
 })();
 
 
-//プレイヤーモジュール
+//プレイヤークラス
 class Player{
 	constructor(name){
 		this.deck=[];
@@ -97,7 +97,7 @@ class Player{
 	}
 }
 
-//カーソル選択モジュール
+//カーソル選択関数
 require("readline").emitKeypressEvents(process.stdin);
 process.stdin.setRawMode(true);
 const SelectCursor=(()=>{
@@ -137,7 +137,7 @@ const SelectCursor=(()=>{
 	});
 })();
 
-//七並べプレイヤーモジュール
+//七並べプレイヤークラス
 class SevensPlayer extends Player{
 	constructor(name,pass){
 		super(name);
@@ -184,7 +184,7 @@ class SevensPlayer extends Player{
 }
 
 
-//七並べAIプレイヤーモジュール
+//七並べAIプレイヤークラス
 class SevensAIPlayer extends SevensPlayer{
 	constructor(name,pass){
 		super(name,pass);
@@ -234,7 +234,7 @@ class SevensAIPlayer extends SevensPlayer{
 	}
 }
 
-//トランプの場モジュール
+//トランプの場クラス
 class TrumpField{
 	constructor(){
 		this.deck=[];
@@ -251,7 +251,7 @@ class TrumpField{
 	}
 }
 
-//七並べの列モジュール
+//七並べの列クラス
 const SevensLine=(()=>{
 	const jokerIndex=13;
 	const sevenIndex=6;
@@ -291,7 +291,7 @@ const SevensLine=(()=>{
 	}
 })();
 
-//七並べモジュール 
+//七並べクラス 
 const Sevens=(()=>{
 	const tenhoh=0xFF;
 	const lines=Symbol();
