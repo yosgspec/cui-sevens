@@ -364,7 +364,7 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 		i=sevenIndex
 		repeat sevenIndex
 			i--
-			if cardLine(i)=0: break
+			if 1!cardLine(i): break
 		loop
 	return i
 
@@ -372,7 +372,7 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 		i=sevenIndex
 		repeat sevenIndex,sevenIndex
 			i++
-			if cardLine(i)=0: break
+			if 1!cardLine(i): break
 		loop
 	return i
 

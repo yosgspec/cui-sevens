@@ -5,19 +5,20 @@ const AUTO_MODE=false;
 //プレイヤー人数
 const PLAYER_NUMBER=4;
 //パス回数
-const PASS_NUMBER=3
+const PASS_NUMBER=3;
 
 //トランプカードクラス
 class TrumpCard{
 	constructor(suit,power){
 		this.name=TrumpCard.suitStrs[suit]+TrumpCard.powerStrs[power];
 		this.power=power;
-		this.suit=suit;
+		this.suit=suit
+	Object.freeze(this);
 	}
 }
-
 TrumpCard.suitStrs=["▲","▼","◆","■","Jo","JO"];
 TrumpCard.powerStrs=["Ａ","２","３","４","５","６","７","８","９","10","Ｊ","Ｑ","Ｋ","KR"];
+Object.freeze(TrumpCard);
 
 //トランプの束クラス
 const TrumpDeck=(()=>{
@@ -52,12 +53,7 @@ const TrumpDeck=(()=>{
 		}
 
 		shuffle(){
-			for(var i in this[deck]){
-				var r=Math.floor(Math.random()*this[deck].length);
-				var tmp=this[deck][i];
-				this[deck][i]=this[deck][r];
-				this[deck][r]=tmp;
-			}
+			this[deck].sort(()=>Math.random()-0.5);
 		}
 
 		draw(){
@@ -65,7 +61,7 @@ const TrumpDeck=(()=>{
 		}
 	};
 })();
-
+Object.freeze(TrumpDeck);;
 
 //プレイヤークラス
 class Player{
@@ -96,10 +92,10 @@ class Player{
 		this.isGameOut=true;
 	}
 }
+Object.freeze(Player);
 
 //カーソル選択関数
 require("readline").emitKeypressEvents(process.stdin);
-process.stdin.setRawMode(true);
 const SelectCursor=items=>{
 	var cursor=0;
 	//カーソルの移動
@@ -121,6 +117,7 @@ const SelectCursor=items=>{
 	}
 
 	return new Promise(resolve=>{
+		process.stdin.setRawMode(true);
 		view();
 		process.stdin.on("keypress",function self(k,ch){
 			if(ch.name=="return"){
@@ -134,6 +131,7 @@ const SelectCursor=items=>{
 		});
 	});
 };
+Object.freeze(SelectCursor);
 
 //七並べプレイヤークラス
 class SevensPlayer extends Player{
@@ -180,7 +178,7 @@ class SevensPlayer extends Player{
 		}
 	}
 }
-
+Object.freeze(SevensPlayer);
 
 //七並べAIプレイヤークラス
 class SevensAIPlayer extends SevensPlayer{
@@ -231,12 +229,14 @@ class SevensAIPlayer extends SevensPlayer{
 		}
 	}
 }
+Object.freeze(SevensAIPlayer);
 
 //トランプの場クラス
 class TrumpField{
 	constructor(){
 		this.deck=[];
 		this.sortDeck=Player.prototype.sortDeck;
+		Object.freeze(this.sortDeck);
 	}
 
 	useCard(player,card){
@@ -248,6 +248,7 @@ class TrumpField{
 		console.log(this.deck.map(v=>v.name).join(" "));
 	}
 }
+Object.freeze(TrumpField);
 
 //七並べの列クラス
 const SevensLine=(()=>{
@@ -261,26 +262,30 @@ const SevensLine=(()=>{
 		}
 
 		rangeMin(){
-			for(var i=sevenIndex;0<=i;i=0|i-1){
-				if(this.cardLine[i]==0) return i;
+			var i;
+			for(i=sevenIndex;0<=i;i=0|i-1){
+				if(!this.cardLine[i]) return i;
 			}
+			return i;
 		}
 
 		rangeMax(){
-			for(var i=sevenIndex;i<jokerIndex;i=0|i+1){
-				if(this.cardLine[i]==0) return i;
+			var i;
+			for(i=sevenIndex;i<jokerIndex;i=0|i+1){
+				if(!this.cardLine[i]) return i;
 			}
+			return i;
 		}
 
 		checkUseCard(power){
 			switch(power){
 				case jokerIndex:
-					return 1;
+					return true;
 				case this.rangeMin():
 				case this.rangeMax():
-					return 1;
+					return true;
 			}
-			return 0;
+			return false;
 		}
 
 		useCard(power){
@@ -288,6 +293,7 @@ const SevensLine=(()=>{
 		}
 	}
 })();
+Object.freeze(SevensLine);
 
 //七並べクラス 
 const Sevens=(()=>{
@@ -299,7 +305,7 @@ const Sevens=(()=>{
 	return class extends TrumpField{
 		constructor(players){
 			super();
-			this[lines]=Array(4).fill({}).map(v=>new SevensLine);
+			this[lines]=Array(4).fill({}).map(v=>new SevensLine());
 			this[rank]=Array(players.length).fill(false);
 			this[clearCount]=0;
 
@@ -313,11 +319,11 @@ const Sevens=(()=>{
 						console.log(`${p.name} が${card.name}を置きました。`);
 						this.useCard(p,card);
 						if(p.deck.length==0){
-							console.log(`${p.name} 【-- 天和 --】\n`);;
+							console.log(`${p.name} 【-- 天和 --】\n`);
 							this[rank][n]=tenhoh;
 							p.gameOut();
 						}
-						break
+						break;
 					}
 				}
 			}
@@ -407,7 +413,7 @@ const Sevens=(()=>{
 		}
 	}
 })();
-
+Object.freeze(Sevens);
 
 //メイン処理
 (async function(){
@@ -429,11 +435,11 @@ console.log(
 		p.push(new SevensPlayer("Player",PASS_NUMBER));
 	}
 
-	p.push(...[...Array(PLAYER_NUMBER-(AUTO_MODE?0:1)).keys()].map(
-		i=>new SevensAIPlayer(`CPU ${i+1}`,PASS_NUMBER)
-	));
+	for(var i=0,imax=PLAYER_NUMBER-(AUTO_MODE?0:1);i<imax;i++){
+		p.push(new SevensAIPlayer(`CPU ${i+1}`,PASS_NUMBER));
+	}
 
-	for(var i=0,count=trp.count;i<count;i=0|i+1){
+	for(var i=0,imax=trp.count;i<imax;i=0|i+1){
 		p[i%PLAYER_NUMBER].addCard(trp.draw());
 	}
 
@@ -447,7 +453,7 @@ console.log(
 		field.view();
 		for(var i in p){
 			await p[i].selectCard(field,i);
-			if(field.checkGameEnd(field)) break selectLoop;
+			if(field.checkGameEnd()) break selectLoop;
 		}
 	}
 
