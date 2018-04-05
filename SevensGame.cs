@@ -1,15 +1,14 @@
-//delexe
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 static class DEFAULT{
-//全自動モード
-public const bool AUTO_MODE=false;
-//プレイヤー人数
-public const int PLAYER_NUMBER=4;
-//パス回数
-public const int PASS_NUMBER=3;
+	//全自動モード
+	public const bool AUTO_MODE=false;
+	//プレイヤー人数
+	public const int PLAYER_NUMBER=4;
+	//パス回数
+	public const int PASS_NUMBER=3;
 }
 
 //トランプカードクラス
@@ -20,7 +19,7 @@ class TrumpCard{
 	public readonly int power;
 	public readonly int suit;
 	public TrumpCard(int suit,int power){
-		this.name=TrumpCard.suitStrs[suit]+TrumpCard.powerStrs[power];
+		this.name=suitStrs[suit]+powerStrs[power];
 		this.power=power;
 		this.suit=suit;
 	}
@@ -32,7 +31,7 @@ class TrumpDeck{
 	const int suits=4;
 	const int powers=13;
 	readonly IEnumerator<TrumpCard> g;
-	List<TrumpCard> deck=new List<TrumpCard>();
+	readonly List<TrumpCard> deck=new List<TrumpCard>();
 
 	IEnumerator<TrumpCard> trumpIter(List<TrumpCard> deck){
 		foreach(var v in deck){
@@ -45,7 +44,7 @@ class TrumpDeck{
 	public TrumpDeck(){
 		for(var suit=0;suit<suits;suit++){
 			for(var power=0;power<powers;power++){
-				this.deck.Add(new TrumpCard(suit,power));
+				deck.Add(new TrumpCard(suit,power));
 			}
 		}
 
@@ -58,7 +57,12 @@ class TrumpDeck{
 	}
 
 	public void shuffle(){
-		deck=deck.OrderBy(i=>Guid.NewGuid()).ToList();
+		for(var i=0;i<deck.Count-1;i++){
+			var r=rand.Next(i,deck.Count);
+			var tmp=deck[i];
+			deck[i]=deck[r];
+			deck[r]=tmp;
+		}
 	}
 
 	public TrumpCard draw(){
@@ -69,7 +73,7 @@ class TrumpDeck{
 
 //プレイヤークラス
 class Player{
-	public List<TrumpCard> deck;
+	public readonly List<TrumpCard> deck;
 	public string name;
 	public bool isGameOut;
 
@@ -80,7 +84,7 @@ class Player{
 
 	public static void sortRefDeck(List<TrumpCard> deck){
 		Func<TrumpCard,int> sortValue=v=>v.suit*13+v.power;
-		deck=deck.OrderBy(v=>sortValue(v)).ToList();
+		deck.Sort((a,b)=>sortValue(a)-sortValue(b));
 	}
 
 	public void sortDeck(){Player.sortRefDeck(deck);}
@@ -131,8 +135,8 @@ static class SelectCursors{
 				Console.WriteLine();
 				return cursor;
 			}
-			if(ch.Key==ConsoleKey.LeftArrow) move(-1,items.Count);
-			if(ch.Key==ConsoleKey.RightArrow) move(1,items.Count);
+			if(ch.Key==ConsoleKey.LeftArrow) move(-1,items.Count);	//左
+			if(ch.Key==ConsoleKey.RightArrow) move(1,items.Count);	//右
 			view();
 		}
 	}
@@ -220,7 +224,6 @@ class SevensAIPlayer:SevensPlayer{
 				break;
 			}
 			else if(field.tryUseCard(this,deck[cursor])){
-				field.view();
 				Console.WriteLine($"これでも食らいなっ >「{items[cursor]}」\n");
 				if(deck.Count==0){
 					Console.WriteLine($"{name}> おっさき～\n");
@@ -236,7 +239,7 @@ class SevensAIPlayer:SevensPlayer{
 
 //トランプの場クラス
 class TrumpField{
-	public List<TrumpCard> deck=new List<TrumpCard>();
+	public readonly List<TrumpCard> deck=new List<TrumpCard>();
 
 	public void sortDeck(){Player.sortRefDeck(deck);}
 
@@ -254,7 +257,7 @@ class TrumpField{
 class SevensLine{
 	const int jokerIndex=13;
 	const int sevenIndex=6;
-	public bool[] cardLine=new bool[13];
+	public readonly bool[] cardLine=new bool[13];
 
 	public SevensLine(){
 		cardLine[sevenIndex]=true;

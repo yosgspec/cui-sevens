@@ -63,8 +63,8 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 	return
 
 	#modfunc tdShuffle
-		foreach deck
-			r=rnd(count)
+		repeat length(deck)-1
+			r=cnt+rnd(length(deck)-cnt)
 			tmp=hash(cnt)
 			hash(cnt)=hash(r)
 			hash(r)=tmp
