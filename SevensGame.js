@@ -289,8 +289,9 @@ const SevensLine=(()=>{
 				case this.rangeMin():
 				case this.rangeMax():
 					return true;
+				default:
+					return false;
 			}
-			return false;
 		}
 
 		useCard(power){

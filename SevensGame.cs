@@ -73,12 +73,11 @@ class TrumpDeck{
 
 //プレイヤークラス
 class Player{
-	public readonly List<TrumpCard> deck;
+	public readonly List<TrumpCard> deck=new List<TrumpCard>();
 	public string name;
 	public bool isGameOut;
 
 	public Player(string name){
-		deck=new List<TrumpCard>();
 		this.name=name;
 	}
 
@@ -248,7 +247,7 @@ class TrumpField{
 		player.removeCard(card.name);
 	}
 
-	public void view(){
+	public virtual void view(){
 		Console.WriteLine(String.Join(" ",deck.Select(v=>v.name)));
 	}
 }
@@ -296,13 +295,12 @@ class SevensLine{
 //七並べクラス 
 class Sevens:TrumpField{
 	const int tenhoh=0xFF;
-	SevensLine[] lines;
-	int[] rank;
+	readonly SevensLine[] lines;
+	readonly int[] rank;
 	int clearCount;
 	
 	public Sevens(List<SevensPlayer> players):base(){
 		lines=Enumerable.Range(0,4).Select(x=>new SevensLine()).ToArray();
-		
 		rank=new int[players.Count];
 		clearCount=0;
 
@@ -373,7 +371,7 @@ class Sevens:TrumpField{
 		return true;
 	}
 
-	public new void view(){
+	public override void view(){
 		var s="";
 		for(var i=0;i<lines.Length;i++){
 			var ss="";
