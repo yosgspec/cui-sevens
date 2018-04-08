@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using static myGlobal;
+using static MyGlobal;
 
-static class myGlobal{
+static class MyGlobal{
 	//全自動モード
 	public const bool AUTO_MODE=false;
 	//プレイヤー人数

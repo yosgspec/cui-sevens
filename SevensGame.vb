@@ -1,9 +1,9 @@
 Option Strict On
 Imports System.Collections.Generic
 Imports System.Linq
-Imports myGlobal
+Imports MyGlobal
 
-Module myGlobal
+Module MyGlobal
 	'全自動モード
 	Public Const AUTO_MODE=False
 	'プレイヤー人数
