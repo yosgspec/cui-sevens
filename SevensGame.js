@@ -5,7 +5,7 @@ const AUTO_MODE=false;
 //プレイヤー人数
 const PLAYER_NUMBER=4;
 //パス回数
-const PASS_NUMBER=3;
+const PASSES_NUMBER=3;
 
 //トランプカードクラス
 class TrumpCard{
@@ -18,12 +18,12 @@ class TrumpCard{
 }
 TrumpCard.suitStrs=["▲","▼","◆","■","Jo","JO"];
 TrumpCard.powerStrs=["Ａ","２","３","４","５","６","７","８","９","10","Ｊ","Ｑ","Ｋ","KR"];
+TrumpCard.suits=4;
+TrumpCard.powers=13;
 Object.freeze(TrumpCard);
 
 //トランプの束クラス
 const TrumpDeck=(()=>{
-	const suits=4;
-	const powers=13;
 	const g=Symbol();
 	const deck=Symbol();
 
@@ -38,15 +38,15 @@ const TrumpDeck=(()=>{
 
 		constructor(){
 			this[deck]=[];
-			for(var suit=0;suit<suits;suit=0|suit+1){
-				for(var power=0;power<powers;power=0|power+1){
+			for(var suit=0;suit<TrumpCard.suits;suit=0|suit+1){
+				for(var power=0;power<TrumpCard.powers;power=0|power+1){
 					this[deck].push(new TrumpCard(suit,power));
 				}
 			}
 
 			/* Joker
-			this[deck].push(new TrumpCard(4,powers));
-			this[deck].push(new TrumpCard(5,powers));
+			this[deck].push(new TrumpCard(4,TrumpCard.powers));
+			this[deck].push(new TrumpCard(5,TrumpCard.powers));
 			*/
 
 			this[g]=trumpIter(this[deck]);
@@ -66,7 +66,7 @@ const TrumpDeck=(()=>{
 		}
 	};
 })();
-Object.freeze(TrumpDeck);;
+Object.freeze(TrumpDeck);
 
 //プレイヤークラス
 class Player{
@@ -77,7 +77,7 @@ class Player{
 	}
 
 	sortDeck(){
-		const sortValue=v=>v.suit*13+v.power;
+		const sortValue=v=>v.suit*TrumpCard.powers+v.power;
 		this.deck.sort((a,b)=>sortValue(a)-sortValue(b));
 	}
 
@@ -86,7 +86,7 @@ class Player{
 	}
 
 	removeCard(cardName){
-		this.deck.some((v,i)=>v.name==cardName? this.deck.splice(i,1): false);
+		this.deck.splice(this.deck.findIndex(v=>v.name==cardName),1);
 	}
 
 	existCard(cardName){
@@ -140,9 +140,9 @@ Object.freeze(SelectCursor);
 
 //七並べプレイヤークラス
 class SevensPlayer extends Player{
-	constructor(name,pass){
+	constructor(name,passes){
 		super(name);
-		this.pass=pass;
+		this.passes=passes;
 	}
 
 	async selectCard(field,index){
@@ -154,17 +154,17 @@ class SevensPlayer extends Player{
 			return;
 		}
 
-		console.log(`【${this.name}】Cards: ${this.deck.length} Pass: ${this.pass}`);
+		console.log(`【${this.name}】Cards: ${this.deck.length} Pass: ${this.passes}`);
 		var items=this.deck.map(v=>v.name);
-		if(0<this.pass) items.push("PS:"+this.pass);
+		if(0<this.passes) items.push("PS:"+this.passes);
 
 		for(;;){
 			var cursor=await SelectCursor(items);
 
-			if(0<this.pass && items.length-1==cursor){
-				this.pass=0|this.pass-1;
+			if(0<this.passes && items.length-1==cursor){
+				this.passes=0|this.passes-1;
 				field.view();
-				console.log(`残りパスは${this.pass}回です。\n`);
+				console.log(`残りパスは${this.passes}回です。\n`);
 				break;
 			}
 			else if(field.tryUseCard(this,this.deck[cursor])){
@@ -187,8 +187,8 @@ Object.freeze(SevensPlayer);
 
 //七並べAIプレイヤークラス
 class SevensAIPlayer extends SevensPlayer{
-	constructor(name,pass){
-		super(name,pass);
+	constructor(name,passes){
+		super(name,passes);
 	}
 
 	async selectCard(field,index){
@@ -200,9 +200,9 @@ class SevensAIPlayer extends SevensPlayer{
 			return;
 		}
 
-		console.log(`【${this.name}】Cards: ${this.deck.length} Pass: ${this.pass}`);
+		console.log(`【${this.name}】Cards: ${this.deck.length} Pass: ${this.passes}`);
 		var items=this.deck.map(v=>v.name);
-		if(0<this.pass) items.push("PS:"+this.pass);
+		if(0<this.passes) items.push("PS:"+this.passes);
 
 		process.stdout.write("考え中...\r");
 		await new Promise(res=>setTimeout(res,1000));
@@ -212,14 +212,13 @@ class SevensAIPlayer extends SevensPlayer{
 		for(;;){
 			var cursor=Math.floor(Math.random()*items.length);
 
-			if(0<this.pass && items.length-1==cursor){
+			if(0<this.passes && items.length-1==cursor){
 				if(passCharge<3){
 					passCharge=0|passCharge+1;
 					continue;
 				}
-				this.pass=0|this.pass-1;
-				field.view();
-				console.log(`パスー (残り${this.pass}回)\n`);
+				this.passes=0|this.passes-1;
+				console.log(`パスー (残り${this.passes}回)\n`);
 				break;
 			}
 			else if(field.tryUseCard(this,this.deck[cursor])){
@@ -257,12 +256,11 @@ Object.freeze(TrumpField);
 
 //七並べの列クラス
 const SevensLine=(()=>{
-	const jokerIndex=13;
 	const sevenIndex=6;
 
 	return class{
 		constructor(){
-			this.cardLine=Array(13).fill(false);
+			this.cardLine=Array(TrumpCard.powers).fill(false);
 			this.cardLine[sevenIndex]=true;
 		}
 
@@ -276,7 +274,7 @@ const SevensLine=(()=>{
 
 		rangeMax(){
 			var i;
-			for(i=sevenIndex;i<jokerIndex;i=0|i+1){
+			for(i=sevenIndex;i<TrumpCard.powers;i=0|i+1){
 				if(!this.cardLine[i]) return i;
 			}
 			return i;
@@ -284,7 +282,7 @@ const SevensLine=(()=>{
 
 		checkUseCard(power){
 			switch(power){
-				case jokerIndex:
+				case TrumpCard.powers:
 					return true;
 				case this.rangeMin():
 				case this.rangeMax():
@@ -304,18 +302,16 @@ Object.freeze(SevensLine);
 //七並べクラス 
 const Sevens=(()=>{
 	const tenhoh=0xFF;
-	const lines=Symbol();
 	const rank=Symbol();
-	const clearCount=Symbol();
-	
+
 	return class extends TrumpField{
 		constructor(players){
 			super();
-			this[lines]=Array(4).fill({}).map(v=>new SevensLine());
+			this.lines=Array(TrumpCard.suits).fill({}).map(v=>new SevensLine());
 			this[rank]=Array(players.length).fill(false);
-			this[clearCount]=0;
+			this.clearCount=0;
 
-			for(var i=0;i<4;i=i=0|i+1){
+			for(var i=0;i<TrumpCard.suits;i=i=0|i+1){
 				var cardSevenName=TrumpCard.suitStrs[i]+TrumpCard.powerStrs[6];
 				for(var n in players){
 					var p=players[n];
@@ -337,12 +333,12 @@ const Sevens=(()=>{
 		}
 
 		useCard(player,card){
-			this[lines][card.suit].useCard(card.power);
+			this.lines[card.suit].useCard(card.power);
 			super.useCard(player,card);
 		}
 
 		checkUseCard(card){
-			return this[lines][card.suit].checkUseCard(card.power);
+			return this.lines[card.suit].checkUseCard(card.power);
 		}
 
 		tryUseCard(player,card){
@@ -352,7 +348,7 @@ const Sevens=(()=>{
 		}
 
 		checkPlayNext(player){
-			if(0<player.pass) return true;
+			if(0<player.passes) return true;
 			for(var card of player.deck){
 				if(this.checkUseCard(card)){
 					return true;
@@ -362,8 +358,8 @@ const Sevens=(()=>{
 		}
 
 		gameClear(player,index){
-			this[clearCount]=0|this[clearCount]+1;
-			this[rank][index]=this[clearCount];
+			this.clearCount=0|this.clearCount+1;
+			this[rank][index]=this.clearCount;
 			player.gameOut();
 		}
 
@@ -384,10 +380,10 @@ const Sevens=(()=>{
 
 		view(){
 			var s="";
-			for(var i in this[lines]){
+			for(var i=0;i<TrumpCard.suits;i=0|i+1){
 				var ss="";
-				for(var n=0;n<13;n=0|n+1){
-					if(this[lines][i].cardLine[n]){
+				for(var n=0;n<TrumpCard.powers;n=0|n+1){
+					if(this.lines[i].cardLine[n]){
 						s+=TrumpCard.suitStrs[i];
 						ss+=TrumpCard.powerStrs[n];
 					}
@@ -438,11 +434,11 @@ console.log(
 
 	const p=[];
 	if(!AUTO_MODE){
-		p.push(new SevensPlayer("Player",PASS_NUMBER));
+		p.push(new SevensPlayer("Player",PASSES_NUMBER));
 	}
 
 	for(var i=0,imax=PLAYER_NUMBER-(AUTO_MODE?0:1);i<imax;i++){
-		p.push(new SevensAIPlayer(`CPU ${i+1}`,PASS_NUMBER));
+		p.push(new SevensAIPlayer(`CPU ${i+1}`,PASSES_NUMBER));
 	}
 
 	for(var i=0,imax=trp.count;i<imax;i=0|i+1){

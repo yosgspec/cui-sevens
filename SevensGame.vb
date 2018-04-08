@@ -1,21 +1,23 @@
 Option Strict On
-Option Infer
 Imports System.Collections.Generic
 Imports System.Linq
+Imports myGlobal
 
-Module _DEFAULT
+Module myGlobal
 	'全自動モード
-	Public Const AUTO_MODE As Boolean=False
+	Public Const AUTO_MODE=False
 	'プレイヤー人数
-	Public Const PLAYER_NUMBER As Integer=4
+	Public Const PLAYER_NUMBER=4
 	'パス回数
-	Public Const PASS_NUMBER As Integer=3
+	Public Const PASSES_NUMBER=3
 End Module
 
 'トランプカードクラス
 Class TrumpCard
 	Public Shared ReadOnly suitStrs As String()={"▲","▼","◆","■","Jo","JO"}
 	Public Shared ReadOnly powerStrs As String()={"Ａ","２","３","４","５","６","７","８","９","10","Ｊ","Ｑ","Ｋ","KR"}
+	Public Const suits As Integer=4
+	Public Const powers As Integer=13
 	Public ReadOnly name As String
 	Public ReadOnly power As Integer
 	Public ReadOnly suit As Integer
@@ -29,8 +31,6 @@ End Class
 'トランプの束クラス
 Class TrumpDeck
 	Public Shared ReadOnly rand As New Random()
-	Const suits As Integer=4
-	Const powers As Integer=13
 	ReadOnly g As IEnumerator(Of TrumpCard)
 	ReadOnly deck As New List(Of TrumpCard)()
 
@@ -40,26 +40,26 @@ Class TrumpDeck
 		Next
 	End Function
 
-	ReadOnly Property Count() As Integer
+	ReadOnly Property count() As Integer
 		Get
 			return deck.Count:End Get:End Property
 
 	Sub New()
-		For suit=0I To suits-1
-			For power=0I To powers-1
+		For suit=0 To TrumpCard.suits-1
+			For power=0 To TrumpCard.powers-1
 				deck.Add(New TrumpCard(suit,power))
 			Next
 		Next
 
 		' Joker
-		'deck.Add(New TrumpCard(4,powers))
-		'deck.Add(New TrumpCard(5,powers))
+		'deck.Add(New TrumpCard(4,TrumpCard.powers))
+		'deck.Add(New TrumpCard(5,TrumpCard.powers))
 
 		g=trumpIter(deck)
 	End Sub
 
 	Sub shuffle()
-		For i=0i To deck.Count-2
+		For i=0 To deck.Count-2
 			Dim r=rand.Next(i,deck.Count)
 			Dim tmp=deck(i)
 			deck(i)=deck(r)
@@ -84,7 +84,7 @@ Class Player
 	End Sub
 
 	Shared Sub sortRefDeck(deck As List(Of TrumpCard))
-		Dim sortValue As Func(Of TrumpCard,Integer)=Function(v) v.suit*13+v.power
+		Dim sortValue As Func(Of TrumpCard,Integer)=Function(v) v.suit*TrumpCard.powers+v.power
 		deck.Sort(Function(a,b) sortValue(a)-sortValue(b))
 	End Sub
 	
@@ -111,12 +111,12 @@ End Class
 'カーソル選択モジュール
 Module SelectCursors
 	Function SelectCursor(items As List(Of String)) As Integer
-		Dim cursor=0I
+		Dim cursor=0
 		'カーソルの移動
 		Dim move As Action(Of Integer,Integer)=Sub(x,max)
 			cursor+=x
-			If  cursor<0 Then cursor=0
-			If  max-1<cursor Then cursor=max-1
+			If cursor<0 Then cursor=0
+			If max-1<cursor Then cursor=max-1
 		End Sub
 
 		'カーソルの表示
@@ -124,7 +124,7 @@ Module SelectCursors
 			Dim _select(items.Count-1) As Boolean
 			_select(cursor)=True
 			Dim s=""
-			For  i=0I To items.Count-1
+			For  i=0 To items.Count-1
 				s+=If (_select(i),$"[{items(i)}]",items(i))
 			Next
 			Console.Write($"{s}{vbCr}")
@@ -147,10 +147,10 @@ End Module
 '七並べプレイヤークラス
 Class SevensPlayer
 	Inherits Player
-	Public pass As Integer
-	Sub New(name As String,pass As Integer)
+	Public passes As Integer
+	Sub New(name As String,passes As Integer)
 		MyBase.New(name)
-		Me.pass=pass
+		Me.passes=passes
 	End Sub
 
 	OverRidable Sub selectCard(field As Sevens,index As Integer)
@@ -162,18 +162,19 @@ Class SevensPlayer
 			Exit Sub
 		End If
 
-		Console.WriteLine($"【{name}】Cards: {deck.Count} Pass: {pass}")
+		Console.WriteLine($"【{name}】Cards: {deck.Count} Pass: {passes}")
 		Dim items=New List(Of string)(deck.Select(Function(v) v.name))
-		If 0<pass Then items.Add("PS:" & pass)
+		If 0<passes Then items.Add("PS:" & passes)
 
 		Do
 			Dim cursor=SelectCursors.SelectCursor(items)
 
-			If 0<pass And items.Count-1=cursor Then
-				pass-=1
+			If 0<passes And items.Count-1=cursor Then
+				passes-=1
 				field.view()
-				Console.WriteLine($"残りパスは{pass}回です。{vbLf}")
+				Console.WriteLine($"残りパスは{passes}回です。{vbLf}")
 				Exit Do
+
 			ElseIf field.tryUseCard(Me,deck(cursor)) Then
 				field.view()
 				Console.WriteLine($"俺の切り札!! >「{items(cursor)}」{vbLf}")
@@ -182,6 +183,7 @@ Class SevensPlayer
 					field.gameClear(Me,index)
 				End If
 				Exit Do
+
 			Else
 				Console.WriteLine($"そのカードは出せないのじゃ…{vbLf}")
 				Continue Do
@@ -193,8 +195,8 @@ End Class
 '七並べAIプレイヤークラス
 Class SevensAIPlayer
 	Inherits SevensPlayer
-	Sub New(name As String,pass As Integer)
-		MyBase.New(name,pass)
+	Sub New(name As String,passes As Integer)
+		MyBase.New(name,passes)
 	End Sub
 
 	Overrides Sub selectCard(field As Sevens,index As Integer)
@@ -206,27 +208,26 @@ Class SevensAIPlayer
 			Exit Sub
 		End If
 
-		Console.WriteLine($"【{name}】Cards: {deck.Count} Pass: {pass}")
+		Console.WriteLine($"【{name}】Cards: {deck.Count} Pass: {passes}")
 		Dim items=new List(Of string)(deck.Select(Function(v) v.name))
-		If 0<pass Then items.Add("PS:" & pass)
+		If 0<passes Then items.Add("PS:" & passes)
 
 		Console.Write($"考え中...{vbCr}")
 		Threading.Thread.Sleep(1000)
 
-		Dim passCharge=0I
+		Dim passCharge=0
 
 		Do
 			Dim cursor=TrumpDeck.rand.Next(items.Count)
 
-			If 0<pass And items.Count-1=cursor Then
+			If 0<passes And items.Count-1=cursor Then
 				If passCharge<3 Then
 					passCharge+=1
 					Continue Do
 				End If
 
-				pass-=1
-				field.view()
-				Console.WriteLine($"パスー (残り{pass}回){vbLf}")
+				passes-=1
+				Console.WriteLine($"パスー (残り{passes}回){vbLf}")
 				Exit Do
 
 			ElseIf field.tryUseCard(Me,deck(cursor)) Then
@@ -236,6 +237,7 @@ Class SevensAIPlayer
 					field.gameClear(Me,index)
 				End If
 				Exit Do
+
 			Else
 				Continue Do
 			End If
@@ -245,7 +247,7 @@ End Class
 
 'トランプの場クラス
 Class TrumpField
-	ReadOnly deck As New List(Of TrumpCard)()
+	Public ReadOnly deck As New List(Of TrumpCard)()
 
 	Sub sortDeck()
 		Player.sortRefDeck(deck):End Sub
@@ -262,9 +264,8 @@ End Class
 
 '七並べの列クラス
 Class SevensLine
-	Const jokerIndex=13I
-	Const sevenIndex=6I
-	Public ReadOnly cardLine(13-1) As Boolean
+	Const sevenIndex=6
+	Public ReadOnly cardLine(TrumpCard.powers-1) As Boolean
 
 	Sub New()
 		cardLine(sevenIndex)=True
@@ -280,7 +281,7 @@ Class SevensLine
 
 	Function rangeMax() As Integer
 		Dim i As Integer
-		For i=sevenIndex To jokerIndex-1
+		For i=sevenIndex To TrumpCard.powers-1
 			If Not cardLine(i) Then Return i
 		Next
 		Return i
@@ -288,7 +289,7 @@ Class SevensLine
 
 	Function checkUseCard(power As Integer) As Boolean
 		Select Case power
-			Case jokerIndex,rangeMin(),rangeMax()
+			Case TrumpCard.powers,rangeMin(),rangeMax()
 				Return True
 			Case Else
 				Return False
@@ -303,20 +304,20 @@ End Class
 '七並べクラス 
 Class Sevens
 	Inherits TrumpField
-	Const tenhoh=&HFFI
-	ReadOnly lines As SevensLine()
+	Const tenhoh=&HFF
+	Public ReadOnly lines As SevensLine()
 	ReadOnly rank As Integer()
 	Public clearCount As Integer
 
 	Sub New(players As List(Of SevensPlayer))
 		MyBase.New()
-		lines=Enumerable.Range(0,4).Select(Function(x) New SevensLine()).ToArray()
-		rank=New Integer(players.Count-1){}
+		lines=Enumerable.Range(0,TrumpCard.suits).Select(Function(x) New SevensLine()).ToArray()
+		ReDim rank(players.Count-1)
 		clearCount=0
 
-		For i=0I To 3
+		For i=0 To TrumpCard.suits-1
 			Dim cardSevenName=TrumpCard.suitStrs(i) & TrumpCard.powerStrs(6)
-			For n=0I To players.Count-1
+			For n=0 To players.Count-1
 				Dim p=players(n)
 				Dim cardSevenIndex=p.existCard(cardSevenName)
 				If -1<cardSevenIndex Then
@@ -351,7 +352,7 @@ Class Sevens
 	End Function
 
 	Function checkPlayNext(player As SevensPlayer) As Boolean
-		If 0<player.pass  Then Return True
+		If 0<player.passes Then Return True
 		For Each card In player.deck
 			If checkUseCard(card) Then _
 				Return True
@@ -382,9 +383,9 @@ Class Sevens
 
 	OverRides Sub view()
 		Dim s=""
-		For i=0 To lines.Length-1
+		For i=0 To TrumpCard.suits-1
 			Dim ss=""
-			For n=0 To 12
+			For n=0 To TrumpCard.powers-1
 				If lines(i).cardLine(n) Then
 					s &=TrumpCard.suitStrs(i)
 					ss &=TrumpCard.powerStrs(n)
@@ -401,7 +402,7 @@ Class Sevens
 	Sub result(players As List(Of SevensPlayer))
 		Console.WriteLine($"{vbLf}【Game Result】")
 		Dim rankStr As String
-		For i=0i To rank.Length-1
+		For i=0 To rank.Length-1
 			If rank(i)=tenhoh Then
 				rankStr="天和"
 			ElseIf 0<rank(i) Then
@@ -417,7 +418,7 @@ End Class
 'メイン処理
 Module Program
 	Sub Main()
-		For i=1I To 100
+		For i=1 To 100
 			Console.WriteLine()
 		Next
 
@@ -432,16 +433,16 @@ $"/---------------------------------------/
 
 		Dim p=new List(Of SevensPlayer)()
 
-		If Not _DEFAULT.AUTO_MODE Then
-			p.Add(New SevensPlayer("Player",_DEFAULT.PASS_NUMBER))
+		If Not AUTO_MODE Then
+			p.Add(New SevensPlayer("Player",PASSES_NUMBER))
 		End If
 
-		For i=1I To _DEFAULT.PLAYER_NUMBER-(If(_DEFAULT.AUTO_MODE,0,1))
-			p.Add(New SevensAIPlayer($"CPU {i}",_DEFAULT.PASS_NUMBER))
+		For i=1 To PLAYER_NUMBER-(If(AUTO_MODE,0,1))
+			p.Add(New SevensAIPlayer($"CPU {i}",PASSES_NUMBER))
 		Next
 
-		For i=0I To trp.count-1
-			p(i Mod _DEFAULT.PLAYER_NUMBER).addCard(trp.draw())
+		For i=0 To trp.count-1
+			p(i Mod PLAYER_NUMBER).addCard(trp.draw())
 		Next
 
 		For Each v In p
@@ -452,7 +453,7 @@ $"/---------------------------------------/
 
 		Do
 			field.view()
-			For i=0i To p.Count-1
+			For i=0 To p.Count-1
 				p(i).selectCard(field,i)
 				If field.checkGameEnd() Then Exit Do
 			Next

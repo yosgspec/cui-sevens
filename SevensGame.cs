@@ -1,20 +1,23 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using static myGlobal;
 
-static class DEFAULT{
+static class myGlobal{
 	//全自動モード
 	public const bool AUTO_MODE=false;
 	//プレイヤー人数
 	public const int PLAYER_NUMBER=4;
 	//パス回数
-	public const int PASS_NUMBER=3;
+	public const int PASSES_NUMBER=3;
 }
 
 //トランプカードクラス
 class TrumpCard{
 	public static readonly string[] suitStrs={"▲","▼","◆","■","Jo","JO"};
 	public static readonly string[] powerStrs={"Ａ","２","３","４","５","６","７","８","９","10","Ｊ","Ｑ","Ｋ","KR"};
+	public const int suits=4;
+	public const int powers=13;
 	public readonly string name;
 	public readonly int power;
 	public readonly int suit;
@@ -28,8 +31,6 @@ class TrumpCard{
 //トランプの束クラス
 class TrumpDeck{
 	public static readonly Random rand=new Random();
-	const int suits=4;
-	const int powers=13;
 	readonly IEnumerator<TrumpCard> g;
 	readonly List<TrumpCard> deck=new List<TrumpCard>();
 
@@ -42,15 +43,15 @@ class TrumpDeck{
 	public int count{get{return deck.Count;}}
 
 	public TrumpDeck(){
-		for(var suit=0;suit<suits;suit++){
-			for(var power=0;power<powers;power++){
+		for(var suit=0;suit<TrumpCard.suits;suit++){
+			for(var power=0;power<TrumpCard.powers;power++){
 				deck.Add(new TrumpCard(suit,power));
 			}
 		}
 
 		/* Joker
-		deck.Add(new TrumpCard(4,powers));
-		deck.Add(new TrumpCard(5,powers));
+		deck.Add(new TrumpCard(4,TrumpCard.powers));
+		deck.Add(new TrumpCard(5,TrumpCard.powers));
 		*/
 
 		g=trumpIter(deck);
@@ -82,7 +83,7 @@ class Player{
 	}
 
 	public static void sortRefDeck(List<TrumpCard> deck){
-		Func<TrumpCard,int> sortValue=v=>v.suit*13+v.power;
+		Func<TrumpCard,int> sortValue=v=>v.suit*TrumpCard.powers+v.power;
 		deck.Sort((a,b)=>sortValue(a)-sortValue(b));
 	}
 
@@ -143,9 +144,9 @@ static class SelectCursors{
 
 //七並べプレイヤークラス
 class SevensPlayer:Player{
-	public int pass;
-	public SevensPlayer(string name,int pass):base(name){
-		this.pass=pass;
+	public int passes;
+	public SevensPlayer(string name,int passes):base(name){
+		this.passes=passes;
 	}
 
 	public virtual void selectCard(Sevens field,int index){
@@ -157,17 +158,17 @@ class SevensPlayer:Player{
 			return;
 		}
 
-		Console.WriteLine($"【{name}】Cards: {deck.Count} Pass: {pass}");
+		Console.WriteLine($"【{name}】Cards: {deck.Count} Pass: {passes}");
 		var items=new List<string>(deck.Select(v=>v.name));
-		if(0<pass) items.Add("PS:"+pass);
+		if(0<passes) items.Add("PS:"+passes);
 
 		for(;;){
 			var cursor=SelectCursors.SelectCursor(items);
 
-			if(0<pass && items.Count-1==cursor){
-				pass--;
+			if(0<passes && items.Count-1==cursor){
+				passes--;
 				field.view();
-				Console.WriteLine($"残りパスは{pass}回です。\n");
+				Console.WriteLine($"残りパスは{passes}回です。\n");
 				break;
 			}
 			else if(field.tryUseCard(this,deck[cursor])){
@@ -189,7 +190,7 @@ class SevensPlayer:Player{
 
 //七並べAIプレイヤークラス
 class SevensAIPlayer:SevensPlayer{
-	public SevensAIPlayer(string name,int pass):base(name,pass){}
+	public SevensAIPlayer(string name,int passes):base(name,passes){}
 
 	public override void selectCard(Sevens field,int index){
 		if(isGameOut) return;
@@ -200,9 +201,9 @@ class SevensAIPlayer:SevensPlayer{
 			return;
 		}
 
-		Console.WriteLine($"【{name}】Cards: {deck.Count} Pass: {pass}");
+		Console.WriteLine($"【{name}】Cards: {deck.Count} Pass: {passes}");
 		var items=new List<string>(deck.Select(v=>v.name));
-		if(0<pass) items.Add("PS:"+pass);
+		if(0<passes) items.Add("PS:"+passes);
 
 		Console.Write("考え中...\r");
 		System.Threading.Thread.Sleep(1000);
@@ -212,14 +213,13 @@ class SevensAIPlayer:SevensPlayer{
 		for(;;){
 			var cursor=TrumpDeck.rand.Next(items.Count);
 
-			if(0<pass && items.Count-1==cursor){
+			if(0<passes && items.Count-1==cursor){
 				if(passCharge<3){
 					passCharge++;
 					continue;
 				}
-				pass--;
-				field.view();
-				Console.WriteLine($"パスー (残り{pass}回)\n");
+				passes--;
+				Console.WriteLine($"パスー (残り{passes}回)\n");
 				break;
 			}
 			else if(field.tryUseCard(this,deck[cursor])){
@@ -234,7 +234,6 @@ class SevensAIPlayer:SevensPlayer{
 		}
 	}
 }
-
 
 //トランプの場クラス
 class TrumpField{
@@ -254,9 +253,8 @@ class TrumpField{
 
 //七並べの列クラス
 class SevensLine{
-	const int jokerIndex=13;
 	const int sevenIndex=6;
-	public readonly bool[] cardLine=new bool[13];
+	public readonly bool[] cardLine=new bool[TrumpCard.powers];
 
 	public SevensLine(){
 		cardLine[sevenIndex]=true;
@@ -272,7 +270,7 @@ class SevensLine{
 
 	public int rangeMax(){
 		int i;
-		for(i=sevenIndex;i<jokerIndex;i++){
+		for(i=sevenIndex;i<TrumpCard.powers;i++){
 			if(!cardLine[i]) return i;
 		}
 		return i;
@@ -280,7 +278,7 @@ class SevensLine{
 
 	public bool checkUseCard(int power){
 		if(
-			power==jokerIndex ||
+			power==TrumpCard.powers ||
 			power==rangeMin() ||
 			power==rangeMax()
 		) return true;
@@ -295,16 +293,16 @@ class SevensLine{
 //七並べクラス 
 class Sevens:TrumpField{
 	const int tenhoh=0xFF;
-	readonly SevensLine[] lines;
+	public readonly SevensLine[] lines;
 	readonly int[] rank;
-	int clearCount;
+	public int clearCount;
 	
 	public Sevens(List<SevensPlayer> players):base(){
-		lines=Enumerable.Range(0,4).Select(x=>new SevensLine()).ToArray();
+		lines=Enumerable.Range(0,TrumpCard.suits).Select(x=>new SevensLine()).ToArray();
 		rank=new int[players.Count];
 		clearCount=0;
 
-		for(var i=0;i<4;i++){
+		for(var i=0;i<TrumpCard.suits;i++){
 			var cardSevenName=TrumpCard.suitStrs[i]+TrumpCard.powerStrs[6];
 			for(var n=0;n<players.Count;n++){
 				var p=players[n];
@@ -341,7 +339,7 @@ class Sevens:TrumpField{
 	}
 
 	public bool checkPlayNext(SevensPlayer player){
-		if(0<player.pass) return true;
+		if(0<player.passes) return true;
 		foreach(var card in player.deck){
 			if(checkUseCard(card)){
 				return true;
@@ -373,9 +371,9 @@ class Sevens:TrumpField{
 
 	public override void view(){
 		var s="";
-		for(var i=0;i<lines.Length;i++){
+		for(var i=0;i<TrumpCard.suits;i++){
 			var ss="";
-			for(var n=0;n<13;n++){
+			for(var n=0;n<TrumpCard.powers;n++){
 				if(lines[i].cardLine[n]){
 					s+=TrumpCard.suitStrs[i];
 					ss+=TrumpCard.powerStrs[n];
@@ -425,16 +423,16 @@ Console.WriteLine(
 		trp.shuffle();
 
 		var p=new List<SevensPlayer>();
-		if(!DEFAULT.AUTO_MODE){
-			p.Add(new SevensPlayer("Player",DEFAULT.PASS_NUMBER));
+		if(!AUTO_MODE){
+			p.Add(new SevensPlayer("Player",PASSES_NUMBER));
 		}
 
-		for(var i=0;i<DEFAULT.PLAYER_NUMBER-(DEFAULT.AUTO_MODE?0:1);i++){
-			p.Add(new SevensAIPlayer($"CPU {i+1}",DEFAULT.PASS_NUMBER));
+		for(var i=0;i<PLAYER_NUMBER-(AUTO_MODE?0:1);i++){
+			p.Add(new SevensAIPlayer($"CPU {i+1}",PASSES_NUMBER));
 		}
 
 		for(var i=0;i<trp.count;i++){
-			p[i%DEFAULT.PLAYER_NUMBER].addCard(trp.draw());
+			p[i%PLAYER_NUMBER].addCard(trp.draw());
 		}
 
 		foreach(var v in p){
