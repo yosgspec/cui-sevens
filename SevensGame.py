@@ -110,7 +110,6 @@ def SelectCursor(items):
 			if ch==0x4d: move(1,len(items))		#右
 
 		view()
-
 	return cursor
 
 #七並べプレイヤークラス
@@ -121,7 +120,7 @@ class SevensPlayer(Player):
 
 	def selectCard(self,field,index):
 		if self.isGameOut: return
-		if not field.checkPlayNext(self):
+		if not field.checkPlayNext(self,self.passes):
 			field.gameOver(self,index)
 			field.view()
 			print(f"{self.name} GameOver...\n")
@@ -159,7 +158,7 @@ class SevensAIPlayer(SevensPlayer):
 
 	def selectCard(self,field,index):
 		if self.isGameOut: return
-		if not field.checkPlayNext(self):
+		if not field.checkPlayNext(self,self.passes):
 			field.gameOver(self,index)
 			field.view()
 			print(f"{self.name}> もうだめ...\n")
@@ -279,8 +278,8 @@ class Sevens(TrumpField):
 		self.useCard(player,card)
 		return True
 
-	def checkPlayNext(self,player):
-		if 0<player.passes: return True
+	def checkPlayNext(self,player,passes):
+		if 0<passes: return True
 		for card in player.deck:
 			if self.checkUseCard(card):
 				return True

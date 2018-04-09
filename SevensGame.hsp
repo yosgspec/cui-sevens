@@ -224,7 +224,7 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 
 	*selectCard
 		if isGameOut: return
-		if 1!svCheckPlayNext(field,thismod) {
+		if 1!svCheckPlayNext(field,thismod,passes) {
 			svGameOver field,thismod,index
 			svView field
 			mes name+" GameOver...\n"
@@ -278,7 +278,7 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 
 	*selectCard
 		if me(isGameOut): return
-		if 1!svCheckPlayNext(field,thismod) {
+		if 1!svCheckPlayNext(field,thismod,me(passes)) {
 			svGameOver field,thismod,index
 			svView field
 			mes me(name)+"> ‚à‚¤‚¾‚ß...\n"
@@ -445,8 +445,8 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 		svUseCard _player,_card
 	return 1
 
-	#modcfunc svCheckPlayNext var _player
-		if 0<splPasses(_player): return 1
+	#modcfunc svCheckPlayNext var _player,int _passes
+		if 0<_passes: return 1
 		dimtype _deck,5
 		plRefDeck _player,_deck
 		isPlayGame=0

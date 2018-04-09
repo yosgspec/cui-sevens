@@ -147,7 +147,7 @@ class SevensPlayer extends Player{
 
 	async selectCard(field,index){
 		if(this.isGameOut) return;
-		if(!field.checkPlayNext(this)){
+		if(!field.checkPlayNext(this,this.passes)){
 			field.gameOver(this,index);
 			field.view();
 			console.log(`${this.name} GameOver...\n`);
@@ -193,7 +193,7 @@ class SevensAIPlayer extends SevensPlayer{
 
 	async selectCard(field,index){
 		if(this.isGameOut) return;
-		if(!field.checkPlayNext(this)){
+		if(!field.checkPlayNext(this,this.passes)){
 			field.gameOver(this,index);
 			field.view();
 			console.log(`${this.name}> もうだめ...\n`);
@@ -347,8 +347,8 @@ const Sevens=(()=>{
 			return true;
 		}
 
-		checkPlayNext(player){
-			if(0<player.passes) return true;
+		checkPlayNext(player,passes){
+			if(0<passes) return true;
 			for(var card of player.deck){
 				if(this.checkUseCard(card)){
 					return true;

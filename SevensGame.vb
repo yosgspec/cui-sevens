@@ -73,11 +73,25 @@ Class TrumpDeck
 	End Function
 End Class
 
+'プレイヤーフェイス
+Interface IPlayer
+	ReadOnly Property deck As List(Of TrumpCard)
+	Property name As String
+	Property isGameOut As Boolean
+	Sub sortDeck
+	Sub addCard(card As TrumpCard)
+	Sub removeCard(cardName As String)
+	Function existCard(cardName As String) As Integer
+	Sub gameOut()
+End Interface
+
 'プレイヤークラス
 Class Player
-	Public ReadOnly deck As New List(Of TrumpCard)()
-	public  name As String
-	Public isGameOut As Boolean
+	Implements IPlayer
+
+	ReadOnly Property deck As New List(Of TrumpCard)() Implements IPlayer.deck
+	Property name As String Implements IPlayer.name
+	Property isGameOut As Boolean Implements IPlayer.isGameOut
 
 	Sub New(name As String)
 		Me.name=name
@@ -88,22 +102,22 @@ Class Player
 		deck.Sort(Function(a,b) sortValue(a)-sortValue(b))
 	End Sub
 	
-	Sub sortDeck
-		Player.sortRefDeck(deck):End Sub
+	Sub sortDeck() Implements IPlayer.sortDeck
+		sortRefDeck(deck):End Sub
 
-	Sub addCard(card As TrumpCard)
+	Sub addCard(card As TrumpCard) Implements IPlayer.addCard
 		deck.Add(card)
 	End Sub
 
-	Sub removeCard(cardName As String)
+	Sub removeCard(cardName As String) Implements IPlayer.removeCard
 		deck.Remove(deck.Find(Function(v) v.name=cardName))
 	End Sub
 
-	Function existCard(cardName As String) As Integer
+	Function existCard(cardName As String) As Integer Implements IPlayer.existCard
 		Return deck.FindIndex(Function(v) v.name=cardName)
 	End Function
 
-	Sub gameOut()
+	Sub gameOut() Implements IPlayer.gameOut
 		isGameOut=True
 	End Sub
 End Class
@@ -147,6 +161,8 @@ End Module
 '七並べプレイヤークラス
 Class SevensPlayer
 	Inherits Player
+	Implements IPlayer
+
 	Public passes As Integer
 	Sub New(name As String,passes As Integer)
 		MyBase.New(name)
@@ -155,7 +171,7 @@ Class SevensPlayer
 
 	OverRidable Sub selectCard(field As Sevens,index As Integer)
 		If isGameOut Then Exit Sub
-		If Not field.checkPlayNext(Me) Then
+		If Not field.checkPlayNext(Me,passes) Then
 			field.gameOver(Me,index)
 			field.view()
 			Console.WriteLine($"{name} GameOver...{vbLf}")
@@ -195,13 +211,15 @@ End Class
 '七並べAIプレイヤークラス
 Class SevensAIPlayer
 	Inherits SevensPlayer
+	Implements IPlayer
+
 	Sub New(name As String,passes As Integer)
 		MyBase.New(name,passes)
 	End Sub
 
 	Overrides Sub selectCard(field As Sevens,index As Integer)
 		If isGameOut Then Exit Sub
-		If Not field.checkPlayNext(Me) Then
+		If Not field.checkPlayNext(Me,passes) Then
 			field.gameOver(Me,index)
 			field.view()
 			Console.WriteLine($"{name}> もうだめ...{vbLf}")
@@ -252,7 +270,7 @@ Class TrumpField
 	Sub sortDeck()
 		Player.sortRefDeck(deck):End Sub
 
-	OverRidable Sub useCard(player As SevensPlayer,card As TrumpCard)
+	OverRidable Sub useCard(player As IPlayer,card As TrumpCard)
 		deck.Add(card)
 		player.removeCard(card.name)
 	End Sub
@@ -309,7 +327,7 @@ Class Sevens
 	ReadOnly rank As Integer()
 	Public clearCount As Integer
 
-	Sub New(players As List(Of SevensPlayer))
+	Sub New(players As List(Of IPlayer))
 		MyBase.New()
 		lines=Enumerable.Range(0,TrumpCard.suits).Select(Function(x) New SevensLine()).ToArray()
 		ReDim rank(players.Count-1)
@@ -336,7 +354,7 @@ Class Sevens
 		Console.WriteLine()
 	End Sub
 
-	Overrides Sub useCard(player As SevensPlayer,card As TrumpCard)
+	Overrides Sub useCard(player As IPlayer,card As TrumpCard)
 		lines(card.suit).useCard(card.power)
 		MyBase.useCard(player,card)
 	End Sub
@@ -345,14 +363,14 @@ Class Sevens
 		Return lines(card.suit).checkUseCard(card.power)
 	End Function
 
-	Function tryUseCard(player As SevensPlayer,card As TrumpCard) As Boolean
+	Function tryUseCard(player As IPlayer,card As TrumpCard) As Boolean
 		If Not checkUseCard(card) Then Return False
 		useCard(player,card)
 		Return True
 	End Function
 
-	Function checkPlayNext(player As SevensPlayer) As Boolean
-		If 0<player.passes Then Return True
+	Function checkPlayNext(player As IPlayer,passes As Integer) As Boolean
+		If 0<passes Then Return True
 		For Each card In player.deck
 			If checkUseCard(card) Then _
 				Return True
@@ -360,13 +378,13 @@ Class Sevens
 		Return False
 	End Function
 
-	Sub gameClear(player As SevensPlayer,index As Integer)
+	Sub gameClear(player As IPlayer,index As Integer)
 		clearCount+=1
 		rank(index)=clearCount
 		player.gameOut()
 	End Sub
 
-	Sub gameOver(player As SevensPlayer,index As Integer)
+	Sub gameOver(player As IPlayer,index As Integer)
 		rank(index)=-1
 		For i=player.deck.Count-1 To 0 Step -1
 			useCard(player,player.deck(i))
@@ -399,7 +417,7 @@ Class Sevens
 		Console.WriteLine(s)
 	End Sub
 
-	Sub result(players As List(Of SevensPlayer))
+	Sub result(players As List(Of IPlayer))
 		Console.WriteLine($"{vbLf}【Game Result】")
 		Dim rankStr As String
 		For i=0 To rank.Length-1
@@ -449,7 +467,7 @@ $"/---------------------------------------/
 			v.sortDeck()
 		Next
 
-		Dim field=New Sevens(p)
+		Dim field=New Sevens(p.Select(Function(v) CType(v,IPlayer)).ToList())
 
 		Do
 			field.view()
@@ -460,7 +478,7 @@ $"/---------------------------------------/
 		Loop
 
 		field.view()
-		field.result(p)
+		field.result(p.Select(Function(v) CType(v,IPlayer)).ToList())
 		Console.ReadLine()
 	End Sub
 End Module

@@ -72,11 +72,23 @@ class TrumpDeck{
 	}
 }
 
+//プレイヤーインターフェイス
+interface IPlayer{
+	List<TrumpCard> deck{get;}
+	string name{get;set;}
+	bool isGameOut{get;set;}
+	void sortDeck();
+	void addCard(TrumpCard card);
+	void removeCard(string cardName);
+	int existCard(string cardName);
+	void gameOut();
+}
+
 //プレイヤークラス
-class Player{
-	public readonly List<TrumpCard> deck=new List<TrumpCard>();
-	public string name;
-	public bool isGameOut;
+class Player:IPlayer{
+	public List<TrumpCard> deck{get;}=new List<TrumpCard>();
+	public string name{get;set;}
+	public bool isGameOut{get;set;}
 
 	public Player(string name){
 		this.name=name;
@@ -87,7 +99,7 @@ class Player{
 		deck.Sort((a,b)=>sortValue(a)-sortValue(b));
 	}
 
-	public void sortDeck(){Player.sortRefDeck(deck);}
+	public void sortDeck(){sortRefDeck(deck);}
 
 	public void addCard(TrumpCard card){
 		deck.Add(card);
@@ -143,15 +155,15 @@ static class SelectCursors{
 }
 
 //七並べプレイヤークラス
-class SevensPlayer:Player{
-	public int passes;
+class SevensPlayer:Player,IPlayer{
+	protected int passes;
 	public SevensPlayer(string name,int passes):base(name){
 		this.passes=passes;
 	}
 
 	public virtual void selectCard(Sevens field,int index){
 		if(isGameOut) return;
-		if(!field.checkPlayNext(this)){
+		if(!field.checkPlayNext(this,passes)){
 			field.gameOver(this,index);
 			field.view();
 			Console.WriteLine($"{name} GameOver...\n");
@@ -189,12 +201,12 @@ class SevensPlayer:Player{
 }
 
 //七並べAIプレイヤークラス
-class SevensAIPlayer:SevensPlayer{
+class SevensAIPlayer:SevensPlayer,IPlayer{
 	public SevensAIPlayer(string name,int passes):base(name,passes){}
 
 	public override void selectCard(Sevens field,int index){
 		if(isGameOut) return;
-		if(!field.checkPlayNext(this)){
+		if(!field.checkPlayNext(this,passes)){
 			field.gameOver(this,index);
 			field.view();
 			Console.WriteLine($"{name}> もうだめ...\n");
@@ -241,7 +253,7 @@ class TrumpField{
 
 	public void sortDeck(){Player.sortRefDeck(deck);}
 
-	public virtual void useCard(SevensPlayer player,TrumpCard card){
+	public virtual void useCard(IPlayer player,TrumpCard card){
 		deck.Add(card);
 		player.removeCard(card.name);
 	}
@@ -297,7 +309,7 @@ class Sevens:TrumpField{
 	readonly int[] rank;
 	public int clearCount;
 	
-	public Sevens(List<SevensPlayer> players):base(){
+	public Sevens(List<IPlayer> players):base(){
 		lines=Enumerable.Range(0,TrumpCard.suits).Select(x=>new SevensLine()).ToArray();
 		rank=new int[players.Count];
 		clearCount=0;
@@ -323,7 +335,7 @@ class Sevens:TrumpField{
 		Console.WriteLine();
 	}
 
-	public override void useCard(SevensPlayer player,TrumpCard card){
+	public override void useCard(IPlayer player,TrumpCard card){
 		lines[card.suit].useCard(card.power);
 		base.useCard(player,card);
 	}
@@ -332,14 +344,14 @@ class Sevens:TrumpField{
 		return lines[card.suit].checkUseCard(card.power);
 	}
 
-	public bool tryUseCard(SevensPlayer player,TrumpCard card){
+	public bool tryUseCard(IPlayer player,TrumpCard card){
 		if(!checkUseCard(card)) return false;
 		useCard(player,card);
 		return true;
 	}
 
-	public bool checkPlayNext(SevensPlayer player){
-		if(0<player.passes) return true;
+	public bool checkPlayNext(IPlayer player,int passes){
+		if(0<passes) return true;
 		foreach(var card in player.deck){
 			if(checkUseCard(card)){
 				return true;
@@ -348,13 +360,13 @@ class Sevens:TrumpField{
 		return false;
 	}
 
-	public void gameClear(SevensPlayer player,int index){
+	public void gameClear(IPlayer player,int index){
 		clearCount++;
 		rank[index]=clearCount;
 		player.gameOut();
 	}
 
-	public void gameOver(SevensPlayer player,int index){
+	public void gameOver(IPlayer player,int index){
 		rank[index]=-1;
 		for(var i=player.deck.Count-1;i>=0;i--){
 			useCard(player,player.deck[i]);
@@ -388,7 +400,7 @@ class Sevens:TrumpField{
 		Console.WriteLine(s);
 	}
 
-	public void result(List<SevensPlayer> players){
+	public void result(List<IPlayer> players){
 		Console.WriteLine("\n【Game Result】");
 		string rankStr;
 		for(var i=0;i<rank.Length;i++){
@@ -439,7 +451,7 @@ Console.WriteLine(
 			v.sortDeck();
 		}
 
-		var field=new Sevens(p);
+		var field=new Sevens(p.Select(v=>(IPlayer)v).ToList());
 
 		for(;;){
 			field.view();
@@ -451,7 +463,7 @@ Console.WriteLine(
 		selectLoop:
 
 		field.view();
-		field.result(p);
+		field.result(p.Select(v=>(IPlayer)v).ToList());
 		Console.ReadLine();
 	}
 }
