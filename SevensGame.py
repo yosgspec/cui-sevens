@@ -50,8 +50,9 @@ class TrumpDeck:
 
 #プレイヤークラス
 class Player:
-	def __init__(self,name):
+	def __init__(self,id,name):
 		self.deck=[]
+		self.id=id
 		self.name=name
 		self.isGameOut=False
 
@@ -78,8 +79,9 @@ class Player:
 
 #トランプの場クラス
 class TrumpField:
-	def __init__(self):
+	def __init__(self,players):
 		self.deck=[]
+		self._players=players
 
 	def sortDeck(self):
 		Player.sortRefDeck(deck)
@@ -127,15 +129,15 @@ class Sevens(TrumpField):
 	__tenhoh=0xFF
 
 	def __init__(self,players):
-		super().__init__()
+		super().__init__(players)
 		self.lines=[SevensLine() for i in range(TrumpCard.suits)]
-		self.__rank=[0 for i in players]
+		self.__rank=[0 for i in self._players]
 		self.clearCount=0
 
 		for i in range(TrumpCard.suits):
 			cardSevenName=TrumpCard.suitStrs[i]+TrumpCard.powerStrs[6]
-			for n in range(len(players)):
-				p=players[n]
+			for n in range(len(self._players)):
+				p=self._players[n]
 				cardSevenIndex=p.existCard(cardSevenName)
 				if -1<cardSevenIndex:
 					card=p.deck[cardSevenIndex]
@@ -167,13 +169,13 @@ class Sevens(TrumpField):
 				return True
 		return False
 
-	def gameClear(self,player,index):
+	def gameClear(self,player):
 		self.clearCount+=1
-		self.__rank[index]=self.clearCount
+		self.__rank[player.id]=self.clearCount
 		player.gameOut()
 
-	def gameOver(self,player,index):
-		self.__rank[index]=-1
+	def gameOver(self,player):
+		self.__rank[player.id]=-1
 		for i in range(len(player.deck)-1,-1,-1):
 			self.useCard(player,player.deck[i])
 		player.gameOut()
@@ -197,7 +199,7 @@ class Sevens(TrumpField):
 			s+="\n"+ss+"\n"
 		print(s)
 
-	def result(self,players):
+	def result(self):
 		print("\n【Game Result】")
 		for i in range(len(self.__rank)):
 			if self.__rank[i]==Sevens.__tenhoh:
@@ -206,7 +208,7 @@ class Sevens(TrumpField):
 				rankStr=f"{self.__rank[i]}位"
 			else:
 				rankStr="GameOver..."
-			print(f"{players[i].name}: {rankStr}")
+			print(f"{self._players[i].name}: {rankStr}")
 
 #カーソル選択モジュール
 def SelectCursor(items):
@@ -246,14 +248,14 @@ def SelectCursor(items):
 
 #七並べプレイヤークラス
 class SevensPlayer(Player):
-	def __init__(self,name,passes):
-		super().__init__(name)
+	def __init__(self,id,name,passes):
+		super().__init__(id,name)
 		self._passes=passes
 
-	def selectCard(self,field,index):
+	def selectCard(self,field):
 		if self.isGameOut: return
 		if not field.checkPlayNext(self,self._passes):
-			field.gameOver(self,index)
+			field.gameOver(self)
 			field.view()
 			print(f"{self.name} GameOver...\n")
 			return
@@ -276,7 +278,7 @@ class SevensPlayer(Player):
 				print(f"俺の切り札!! >「{items[cursor]}」\n")
 				if len(self.deck)==0:
 					print(f"{self.name} Congratulations!!\n")
-					field.gameClear(self,index)
+					field.gameClear(self)
 				break
 
 			else:
@@ -285,13 +287,13 @@ class SevensPlayer(Player):
 
 #七並べAIプレイヤークラス
 class SevensAIPlayer(SevensPlayer):
-	def __init__(self,name,passes):
-		super().__init__(name,passes)
+	def __init__(self,id,name,passes):
+		super().__init__(id,name,passes)
 
-	def selectCard(self,field,index):
+	def selectCard(self,field):
 		if self.isGameOut: return
 		if not field.checkPlayNext(self,self._passes):
-			field.gameOver(self,index)
+			field.gameOver(self)
 			field.view()
 			print(f"{self.name}> もうだめ...\n")
 			return
@@ -321,7 +323,7 @@ class SevensAIPlayer(SevensPlayer):
 				print(f"これでも食らいなっ >「{items[cursor]}」\n")
 				if len(self.deck)==0:
 					print(f"{self.name}> おっさき～\n")
-					field.gameClear(self,index)
+					field.gameClear(self)
 				break
 
 			else: continue
@@ -341,12 +343,14 @@ if __name__=="__main__":
 	trp.shuffle()
 
 	p=[]
-
+	pid=0
 	if not AUTO_MODE:
-		p.append(SevensPlayer("Player",PASS_NUMBER))
+		p.append(SevensPlayer(pid,"Player",PASS_NUMBER))
+		pid+=1
 
 	for i in range(PLAYER_NUMBER-(0 if AUTO_MODE else 1)):
-		p.append(SevensAIPlayer(f"CPU {i+1}",PASS_NUMBER))
+		p.append(SevensAIPlayer(pid,f"CPU {i+1}",PASS_NUMBER))
+		pid+=1
 
 	for i in range(trp.count):
 		p[i%PLAYER_NUMBER].addCard(trp.draw())
@@ -358,12 +362,12 @@ if __name__=="__main__":
 
 	while True:
 		field.view()
-		for i in range(len(p)):
-			p[i].selectCard(field,i)
+		for v in p:
+			v.selectCard(field)
 			if field.checkGameEnd(): break
 		else:continue
 		break
 
 	field.view()
-	field.result(p)
+	field.result()
 	input()

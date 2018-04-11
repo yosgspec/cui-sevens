@@ -77,10 +77,12 @@ mt19937 TrumpDeck::rnd([]{
 class Player{
 public:
 	vector<TrumpCard> deck;
+	int id;
 	string name;
 	bool isGameOut=false;
 
-	Player(string name){
+	Player(int id,string name){
+		this->id=id;
 		this->name=name;
 	}
 
@@ -126,8 +128,12 @@ public:
 class TrumpField{
 public:
 	vector<TrumpCard> deck;
-
+	vector<Player> players;
 	void sortDeck(){Player::sortRefDeck(deck);}
+
+	TrumpField(vector<Player>& players){
+		this->players=players;
+	}
 
 	virtual void useCard(Player player,TrumpCard card){
 		deck.push_back(card);
@@ -193,18 +199,18 @@ private:
 public:
 	vector<SevensLine> lines;
 	int clearCount;
-	Sevens(vector<Player>& players):TrumpField(){
+	Sevens(vector<Player>& players):TrumpField(players){
 		for(int i=0;i<TrumpCard::suits;i++) lines.push_back([]{
 			SevensLine v;
 			return v;
 		}());
-		for(int i=0;i<players.size();i++) rank.push_back(0);
+		for(int i=0;i<this->players.size();i++) rank.push_back(0);
 		clearCount=0;
 
 		for(int i=0;i<TrumpCard::suits;i++){
 			auto cardSevenName=TrumpCard::suitStrs[i]+TrumpCard::powerStrs[6];
-			for(int n=0;n<players.size();n++){
-				auto p=players[n];
+			for(int n=0;n<this->players.size();n++){
+				auto& p=this->players[n];
 				auto cardSevenIndex=p.existCard(cardSevenName);
 				if(-1<cardSevenIndex){
 					auto card=p.deck[cardSevenIndex];
@@ -247,14 +253,14 @@ public:
 		return false;
 	}
 
-	virtual public void gameClear(Player& player,int index){
+	virtual public void gameClear(Player& player){
 		clearCount++;
-		rank[index]=clearCount;
+		rank[player.id]=clearCount;
 		player.gameOut();
 	}
 
-	virtual public void gameOver(Player& player,int index){
-		rank[index]=-1;
+	virtual public void gameOver(Player& player){
+		rank[player.id]=-1;
 		for(auto i=player.deck.size()-1;i>=0;i--){
 			useCard(player,player.deck[i]);
 		}
@@ -287,7 +293,7 @@ public:
 		cout<<s<<endl;
 	}
 
-	virtual void result(vector<Player>& players){
+	virtual void result(){
 		cout<<"\n【Game Result】"<<endl;
 		string rankStr;
 		for(int i=0;i<rank.size();i++){
@@ -347,14 +353,14 @@ int SelectCursor(vector<string> items){
 class SevensPlayer:public Player{
 public:
 	int passes;
-	SevensPlayer(string name,int passes):Player(name){
+	SevensPlayer(int id,string name,int passes):Player(id,name){
 		this->passes=passes;
 	}
 
-	virtual void selectCard(Sevens& field,int index){
+	virtual void selectCard(Sevens& field){
 		if(isGameOut) return;
 		if(!field.checkPlayNext(*this,passes)){
-			field.gameOver(*this,index);
+			field.gameOver(*this);
 			field.view();
 			cout<<name<<" GameOver...\n"<<endl;
 			return;
@@ -379,7 +385,7 @@ public:
 				cout<<"俺の切り札!! >「"<<items[cursor]<<"」\n"<<endl;
 				if(deck.size()==0){
 					cout<<name<<" Congratulations!!\n"<<endl;
-					field.gameClear(*this,index);
+					field.gameClear(*this);
 				}
 				break;
 			}
@@ -394,11 +400,11 @@ public:
 //七並べAIプレイヤークラス
 class SevensAIPlayer:public SevensPlayer{
 public:
-	SevensAIPlayer(string name,int passes):SevensPlayer(name,passes){}
-	virtual void selectCard(Sevens& field,int index){
+	SevensAIPlayer(int id,string name,int passes):SevensPlayer(id,name,passes){}
+	virtual void selectCard(Sevens& field){
 		if(isGameOut) return;
 		if(!field.checkPlayNext(*this,passes)){
-			field.gameOver(*this,index);
+			field.gameOver(*this);
 			field.view();
 			cout<<name<<"> もうだめ...\n"<<endl;
 			return;
@@ -431,7 +437,7 @@ public:
 				cout<<"これでも食らいなっ >「"<<items[cursor]<<"」\n"<<endl;
 				if(deck.size()==0){
 					cout<<name<<"> おっさき～\n"<<endl;
-					field.gameClear(*this,index);
+					field.gameClear(*this);
 				}
 				break;
 			}
@@ -456,45 +462,47 @@ cout<<
 	trp.shuffle();
 
 	vector<SevensPlayer> p;
+	int pid=0;
 	if(!AUTO_MODE){
-		SevensPlayer player("Player",PASSES_NUMBER);
+		SevensPlayer player(pid,"Player",PASSES_NUMBER);
 		p.push_back(player);
+		pid++;
 	}
 
 	for(auto i=0;i<PLAYER_NUMBER-(AUTO_MODE?0:1);i++){
-		SevensAIPlayer player("CPU"+to_string(i+1),PASSES_NUMBER);
+		SevensAIPlayer player(pid,"CPU"+to_string(i+1),PASSES_NUMBER);
 		p.push_back(player);
+		pid++;
 	}
 
 	for(int i=0;i<trp.count();i++){
 		p[i%PLAYER_NUMBER].addCard(trp.draw());
 	}
 
-	for(auto v:p){
+	for(auto& v:p){
 		v.sortDeck();
 	}
 
 	Sevens field([&]{
 		vector<Player> pp;
-		for(auto v:p) pp.push_back(v);
+		for(auto& v:p){
+			Player& vv=v;
+			pp.push_back(vv);
+		}
 		return pp;
 	}());
 	
 	for(;;){
 		field.view();
-		for(auto i=0;i<p.size();i++){
-			p[i].selectCard(field,i);
+		for(auto& v:p){
+			v.selectCard(field);
 			if(field.checkGameEnd()) goto selectLoop;
 		}
 	}
 	selectLoop:
 
 	field.view();
-	field.result([&]{
-		vector<Player> pp;
-		for(auto v:p) pp.push_back(v);
-		return pp;
-	}());
+	field.result();
 	while(getchar()!='\n');
 	return 0;
 }

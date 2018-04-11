@@ -74,11 +74,13 @@ class TrumpDeck{
 
 //プレイヤークラス
 class Player{
-	public List<TrumpCard> deck{get;}=new List<TrumpCard>();
-	public string name{get;set;}
-	public bool isGameOut{get;set;}
+	public readonly List<TrumpCard> deck=new List<TrumpCard>();
+	public int id;
+	public string name;
+	public bool isGameOut;
 
-	public Player(string name){
+	public Player(int id,string name){
+		this.id=id;
 		this.name=name;
 	}
 
@@ -108,9 +110,13 @@ class Player{
 
 //トランプの場クラス
 class TrumpField{
+	protected List<Player> players;
 	public readonly List<TrumpCard> deck=new List<TrumpCard>();
-
 	public void sortDeck(){Player.sortRefDeck(deck);}
+	
+	public TrumpField(List<Player> players){
+		this.players=players;
+	}
 
 	public virtual void useCard(Player player,TrumpCard card){
 		deck.Add(card);
@@ -168,15 +174,15 @@ class Sevens:TrumpField{
 	readonly int[] rank;
 	public int clearCount;
 	
-	public Sevens(List<Player> players):base(){
+	public Sevens(List<Player> players):base(players){
 		lines=Enumerable.Range(0,TrumpCard.suits).Select(x=>new SevensLine()).ToArray();
-		rank=new int[players.Count];
+		rank=new int[this.players.Count];
 		clearCount=0;
 
 		for(var i=0;i<TrumpCard.suits;i++){
 			var cardSevenName=TrumpCard.suitStrs[i]+TrumpCard.powerStrs[6];
-			for(var n=0;n<players.Count;n++){
-				var p=players[n];
+			for(var n=0;n<this.players.Count;n++){
+				var p=this.players[n];
 				var cardSevenIndex=p.existCard(cardSevenName);
 				if(-1<cardSevenIndex){
 					var card=p.deck[cardSevenIndex];
@@ -219,14 +225,14 @@ class Sevens:TrumpField{
 		return false;
 	}
 
-	public void gameClear(Player player,int index){
+	public void gameClear(Player player){
 		clearCount++;
-		rank[index]=clearCount;
+		rank[player.id]=clearCount;
 		player.gameOut();
 	}
 
-	public void gameOver(Player player,int index){
-		rank[index]=-1;
+	public void gameOver(Player player){
+		rank[player.id]=-1;
 		for(var i=player.deck.Count-1;i>=0;i--){
 			useCard(player,player.deck[i]);
 		}
@@ -259,7 +265,7 @@ class Sevens:TrumpField{
 		Console.WriteLine(s);
 	}
 
-	public void result(List<Player> players){
+	public void result(){
 		Console.WriteLine("\n【Game Result】");
 		string rankStr;
 		for(var i=0;i<rank.Length;i++){
@@ -316,14 +322,14 @@ static class SelectCursors{
 //七並べプレイヤークラス
 class SevensPlayer:Player{
 	protected int passes;
-	public SevensPlayer(string name,int passes):base(name){
+	public SevensPlayer(int id,string name,int passes):base(id,name){
 		this.passes=passes;
 	}
 
-	public virtual void selectCard(Sevens field,int index){
+	public virtual void selectCard(Sevens field){
 		if(isGameOut) return;
 		if(!field.checkPlayNext(this,passes)){
-			field.gameOver(this,index);
+			field.gameOver(this);
 			field.view();
 			Console.WriteLine($"{name} GameOver...\n");
 			return;
@@ -347,7 +353,7 @@ class SevensPlayer:Player{
 				Console.WriteLine($"俺の切り札!! >「{items[cursor]}」\n");
 				if(deck.Count==0){
 					Console.WriteLine($"{name} Congratulations!!\n");
-					field.gameClear(this,index);
+					field.gameClear(this);
 				}
 				break;
 			}
@@ -361,12 +367,12 @@ class SevensPlayer:Player{
 
 //七並べAIプレイヤークラス
 class SevensAIPlayer:SevensPlayer{
-	public SevensAIPlayer(string name,int passes):base(name,passes){}
+	public SevensAIPlayer(int id,string name,int passes):base(id,name,passes){}
 
-	public override void selectCard(Sevens field,int index){
+	public override void selectCard(Sevens field){
 		if(isGameOut) return;
 		if(!field.checkPlayNext(this,passes)){
-			field.gameOver(this,index);
+			field.gameOver(this);
 			field.view();
 			Console.WriteLine($"{name}> もうだめ...\n");
 			return;
@@ -397,7 +403,7 @@ class SevensAIPlayer:SevensPlayer{
 				Console.WriteLine($"これでも食らいなっ >「{items[cursor]}」\n");
 				if(deck.Count==0){
 					Console.WriteLine($"{name}> おっさき～\n");
-					field.gameClear(this,index);
+					field.gameClear(this);
 				}
 				break;
 			}
@@ -423,12 +429,15 @@ Console.WriteLine(
 		trp.shuffle();
 
 		var p=new List<SevensPlayer>();
+		var pid=0;
 		if(!AUTO_MODE){
-			p.Add(new SevensPlayer("Player",PASSES_NUMBER));
+			p.Add(new SevensPlayer(pid,"Player",PASSES_NUMBER));
+			pid++;
 		}
 
 		for(var i=0;i<PLAYER_NUMBER-(AUTO_MODE?0:1);i++){
-			p.Add(new SevensAIPlayer($"CPU {i+1}",PASSES_NUMBER));
+			p.Add(new SevensAIPlayer(pid,$"CPU {i+1}",PASSES_NUMBER));
+			pid++;
 		}
 
 		for(var i=0;i<trp.count;i++){
@@ -443,15 +452,15 @@ Console.WriteLine(
 
 		for(;;){
 			field.view();
-			for(var i=0;i<p.Count;i++){
-				p[i].selectCard(field,i);
+			foreach(var v in p){
+				v.selectCard(field);
 				if(field.checkGameEnd()) goto selectLoop;
 			}
 		}
 		selectLoop:
 
 		field.view();
-		field.result(p.Select(v=>(Player)v).ToList());
+		field.result();
 		Console.ReadLine();
 	}
 }

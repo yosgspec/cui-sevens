@@ -85,9 +85,11 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 #global
 
 ;ÉvÉåÉCÉÑÅ[ÉÇÉWÉÖÅ[Éã
-#module Player deck,deckCount,isGameOut,name
+#module Player deck,deckCount,isGameOut,id,name
 	#modcfunc plName
 		return name
+	#modcfunc plId
+		return id
 	#modcfunc plIsGameOut
 		return plIsGameOut
 	#modfunc plRefDeck array _deck
@@ -100,11 +102,12 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 		else: dim _deck
 	return
 
-	#define news(%1,%2) newmod %1,Player,%2
-	#modinit str _name
-		super@Player thismod,_name
+	#define news(%1,%2,%3) newmod %1,Player,%2,%3
+	#modinit int _id,str _name
+		super@Player thismod,_id,_name
 	return
-	#modfunc local super str _name
+	#modfunc local super int _id,str _name
+		id=_id
 		name=_name
 		deckCount=0
 		isGameOut=0
@@ -158,8 +161,16 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 #global
 
 ;ÉgÉâÉìÉvÇÃèÍÉÇÉWÉÖÅ[Éã
-#module TrumpField deck,deckCount
-	#define new(%1) dimtype %1,5:newmod %1,TrumpField
+#module TrumpField deck,deckCount,players
+	#define new(%1,%2) dimtype %1,5:newmod %1,TrumpField,%2
+	#modinit array _players
+		super@TrumpField thismod,_players
+	return
+	#modfunc local super array _players
+		dimtype players,length(_players),5
+		foreach _players:players(cnt)=_players(cnt):loop
+	return
+
 	#modfunc tfUseCard var _player,var card
 		deck(deckCount)=card
 		plRemoveCard _player,tcName(card)
@@ -227,7 +238,8 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 #global
 
 ;éµï¿Ç◊ÉÇÉWÉÖÅ[Éã
-#module Sevens deck,deckCount,lines,rank,clearCount
+#module Sevens deck,deckCount,players,lines,rank,clearCount
+	#const tenhoh $FF
 	#modcfunc svClearCount
 		return clearCount
 	#modfunc local svRefLines array _lines
@@ -236,16 +248,16 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 	#define global svnRefLines(%1,%2) dimtype %2,5: svnRefLines@Sevens %1,%2
 
 	#define new(%1,%2) dimtype %1,5:newmod %1,Sevens,%2
-	#modinit array players
+	#modinit array _players
+		super@TrumpField thismod,_players
 		dimtype lines,5,suits@TrumpCard
 		repeat length(lines)
 			news@SevensLine lines
 		loop
 
-		dimtype _deck,5
 		dim rank,length(players)
 		clearCount=0
-		#const tenhoh $FF
+		dimtype _deck,5
 
 		repeat suits@TrumpCard
 			cardSevenName=suitStrs@TrumpCard(cnt)+powerStrs@TrumpCard(6)
@@ -294,14 +306,14 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 		loop
 	return isPlayGame
 
-	#modfunc svGameClear var _player,int index
+	#modfunc svGameClear var _player
 		clearCount++
-		rank(index)=clearCount
+		rank(plId(_player))=clearCount
 		plGameOut _player
 	return
 
-	#modfunc svGameOver var _player,int index
-		rank(index)=-1
+	#modfunc svGameOver var _player
+		rank(plId(_player))=-1
 		dimtype _deck,5
 		plRefDeck _player,_deck
 		deckLen=length(_deck)
@@ -343,7 +355,7 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 		mes s
 	return
 
-	#modfunc svResult array players
+	#modfunc svResult
 		mes "\nÅyGame ResultÅz"
 		foreach rank
 			if rank(cnt)=tenhoh {
@@ -406,26 +418,26 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 #global
 
 ;éµï¿Ç◊ÉvÉåÉCÉÑÅ[ÉÇÉWÉÖÅ[Éã
-#module SevensPlayer deck,deckCount,isGameOut,name,passes,selectCardFn
-	#define news(%1,%2,%3) newmod %1,SevensPlayer,%2,%3
-	#modinit str _name,int _passes
-		super thismod,_name,_passes
+#module SevensPlayer deck,deckCount,isGameOut,id,name,passes,selectCardFn
+	#define news(%1,%2,%3,%4) newmod %1,SevensPlayer,%2,%3,%4
+	#modinit int _id,str _name,int _passes
+		super thismod,_id,_name,_passes
 		selectCardFn=*selectCard
 	return
-	#modfunc local super str _name,int _passes
-		super@Player thismod,_name
+	#modfunc local super int _id,str _name,int _passes
+		super@Player thismod,_id,_name
 		passes=_passes
 	return
 
-	#modfunc splSelectCard var _field,int _index
-		field=_field:index=_index
+	#modfunc splSelectCard var _field
+		field=_field
 		gosub selectCardFn
 	return
 
 	*selectCard
 		if isGameOut: return
 		if 1!svCheckPlayNext(field,thismod,passes) {
-			svGameOver field,thismod,index
+			svGameOver field,thismod
 			svView field
 			mes name+" GameOver...\n"
 			return
@@ -452,7 +464,7 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 				mes strf("â¥ÇÃêÿÇËéD!! >Åu%sÅv\n",items(cursor))
 				if deckCount=0 {
 					mes name+" Congratulations!!\n"
-					svGameClear field,thismod,index
+					svGameClear field,thismod
 				}
 				break
 			}
@@ -465,21 +477,21 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 #global
 
 ;éµï¿Ç◊AIÉvÉåÉCÉÑÅ[ÉÇÉWÉÖÅ[Éã
-#module SevensAIPlayer deck,deckCount,isGameOut,name,passes,selectCardFn
+#module SevensAIPlayer deck,deckCount,isGameOut,id,name,passes,selectCardFn
 	#define ctype me(%1) %1@SevensPlayer
 	#define field field@SevensPlayer
 	#define index index@SevensPlayer
 
-	#define news(%1,%2,%3) newmod %1,SevensAIPlayer,%2,%3
-	#modinit str _name,int _passes
-		super@SevensPlayer thismod,_name,_passes
+	#define news(%1,%2,%3,%4) newmod %1,SevensAIPlayer,%2,%3,%4
+	#modinit int _id,str _name,int _passes
+		super@SevensPlayer thismod,_id,_name,_passes
 		selectCardFn=*selectCard
 	return
 
 	*selectCard
 		if me(isGameOut): return
 		if 1!svCheckPlayNext(field,thismod,me(passes)) {
-			svGameOver field,thismod,index
+			svGameOver field,thismod
 			svView field
 			mes me(name)+"> Ç‡Ç§ÇæÇﬂ...\n"
 			return
@@ -512,7 +524,7 @@ powerStrs@TrumpCard="Ç`","ÇQ","ÇR","ÇS","ÇT","ÇU","ÇV","ÇW","ÇX","10","Çi","Çp",
 				mes strf("Ç±ÇÍÇ≈Ç‡êHÇÁÇ¢Ç»Ç¡ >Åu%sÅv\n",items(cursor))
 				if me(deckCount)=0 {
 					mes me(name)+"> Ç®Ç¡Ç≥Ç´Å`\n"
-					svGameClear field,thismod,index
+					svGameClear field,thismod
 				}
 				break
 			}
@@ -538,12 +550,15 @@ mes {"
 		tdShuffle trp
 
 		dimtype p,5,PLAYER_NUMBER@
+		pid=0
 		#if 1!AUTO_MODE@
-			news@SevensPlayer p,"Player",PASSES_NUMBER@
+			news@SevensPlayer p,pid,"Player",PASSES_NUMBER@
+			pid++
 		#endif
 
 		repeat PLAYER_NUMBER@-(1!AUTO_MODE@),1
-			news@SevensAIPlayer p,"CPU "+cnt,PASSES_NUMBER@
+			news@SevensAIPlayer p,pid,"CPU "+cnt,PASSES_NUMBER@
+			pid++
 		loop
 
 		repeat tdCount(trp)
@@ -561,14 +576,14 @@ mes {"
 		*selectLoop
 			svView field
 			foreach p
-				splSelectCard p(cnt),field,cnt
+				splSelectCard p(cnt),field
 				if svCheckGameEnd(field): goto*exitSelect
 			loop
 		goto*selectLoop
 		*exitSelect
 
 		svView field
-		svResult field,p
+		svResult field
 		sdim exit
 		input exit,,1
 	return

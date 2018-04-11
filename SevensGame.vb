@@ -76,10 +76,12 @@ End Class
 'プレイヤークラス
 Class Player
 	Public ReadOnly deck As New List(Of TrumpCard)()
+	Public id As Integer
 	Public name As String
 	Public isGameOut As Boolean
 
-	Sub New(name As String)
+	Sub New(id As Integer,name As String)
+		Me.id=id
 		Me.name=name
 	End Sub
 
@@ -111,9 +113,13 @@ End Class
 'トランプの場クラス
 Class TrumpField
 	Public ReadOnly deck As New List(Of TrumpCard)()
-
+	Protected players As List(Of Player)
 	Sub sortDeck()
 		Player.sortRefDeck(deck):End Sub
+
+	Sub New(players As List(Of Player))
+		 Me.players=players
+	End Sub
 
 	OverRidable Sub useCard(player As Player,card As TrumpCard)
 		deck.Add(card)
@@ -173,15 +179,15 @@ Class Sevens
 	Public clearCount As Integer
 
 	Sub New(players As List(Of Player))
-		MyBase.New()
+		MyBase.New(players)
 		lines=Enumerable.Range(0,TrumpCard.suits).Select(Function(x) New SevensLine()).ToArray()
-		ReDim rank(players.Count-1)
+		ReDim rank(Me.players.Count-1)
 		clearCount=0
 
 		For i=0 To TrumpCard.suits-1
 			Dim cardSevenName=TrumpCard.suitStrs(i) & TrumpCard.powerStrs(6)
-			For n=0 To players.Count-1
-				Dim p=players(n)
+			For n=0 To Me.players.Count-1
+				Dim p=Me.players(n)
 				Dim cardSevenIndex=p.existCard(cardSevenName)
 				If -1<cardSevenIndex Then
 					Dim card=p.deck(cardSevenIndex)
@@ -223,14 +229,14 @@ Class Sevens
 		Return False
 	End Function
 
-	Sub gameClear(player As Player,index As Integer)
+	Sub gameClear(player As Player)
 		clearCount+=1
-		rank(index)=clearCount
+		rank(player.id)=clearCount
 		player.gameOut()
 	End Sub
 
-	Sub gameOver(player As Player,index As Integer)
-		rank(index)=-1
+	Sub gameOver(player As Player)
+		rank(player.id)=-1
 		For i=player.deck.Count-1 To 0 Step -1
 			useCard(player,player.deck(i))
 		Next
@@ -262,7 +268,7 @@ Class Sevens
 		Console.WriteLine(s)
 	End Sub
 
-	Sub result(players As List(Of Player))
+	Sub result()
 		Console.WriteLine($"{vbLf}【Game Result】")
 		Dim rankStr As String
 		For i=0 To rank.Length-1
@@ -319,15 +325,15 @@ Class SevensPlayer
 	Inherits Player
 
 	Protected passes As Integer
-	Sub New(name As String,passes As Integer)
-		MyBase.New(name)
+	Sub New(id As Integer,name As String,passes As Integer)
+		MyBase.New(id,name)
 		Me.passes=passes
 	End Sub
 
-	OverRidable Sub selectCard(field As Sevens,index As Integer)
+	OverRidable Sub selectCard(field As Sevens)
 		If isGameOut Then Exit Sub
 		If Not field.checkPlayNext(Me,passes) Then
-			field.gameOver(Me,index)
+			field.gameOver(Me)
 			field.view()
 			Console.WriteLine($"{name} GameOver...{vbLf}")
 			Exit Sub
@@ -351,7 +357,7 @@ Class SevensPlayer
 				Console.WriteLine($"俺の切り札!! >「{items(cursor)}」{vbLf}")
 				If deck.Count=0 Then
 					Console.WriteLine($"{name} Congratulations!!{vbLf}")
-					field.gameClear(Me,index)
+					field.gameClear(Me)
 				End If
 				Exit Do
 
@@ -367,14 +373,14 @@ End Class
 Class SevensAIPlayer
 	Inherits SevensPlayer
 
-	Sub New(name As String,passes As Integer)
-		MyBase.New(name,passes)
+	Sub New(id As Integer,name As String,passes As Integer)
+		MyBase.New(id,name,passes)
 	End Sub
 
-	Overrides Sub selectCard(field As Sevens,index As Integer)
+	Overrides Sub selectCard(field As Sevens)
 		If isGameOut Then Exit Sub
 		If Not field.checkPlayNext(Me,passes) Then
-			field.gameOver(Me,index)
+			field.gameOver(Me)
 			field.view()
 			Console.WriteLine($"{name}> もうだめ...{vbLf}")
 			Exit Sub
@@ -406,7 +412,7 @@ Class SevensAIPlayer
 				Console.WriteLine($"これでも食らいなっ >「{items(cursor)}」{vbLf}")
 				If deck.Count=0 Then
 					Console.WriteLine($"{name}> おっさき～{vbLf}")
-					field.gameClear(Me,index)
+					field.gameClear(Me)
 				End If
 				Exit Do
 
@@ -434,13 +440,15 @@ $"/---------------------------------------/
 		trp.shuffle()
 
 		Dim p=new List(Of SevensPlayer)()
-
+		Dim pid=0
 		If Not AUTO_MODE Then
-			p.Add(New SevensPlayer("Player",PASSES_NUMBER))
+			p.Add(New SevensPlayer(pid,"Player",PASSES_NUMBER))
+			pid+=1
 		End If
 
 		For i=1 To PLAYER_NUMBER-(If(AUTO_MODE,0,1))
-			p.Add(New SevensAIPlayer($"CPU {i}",PASSES_NUMBER))
+			p.Add(New SevensAIPlayer(pid,$"CPU {i}",PASSES_NUMBER))
+			pid+=1
 		Next
 
 		For i=0 To trp.count-1
@@ -455,14 +463,14 @@ $"/---------------------------------------/
 
 		Do
 			field.view()
-			For i=0 To p.Count-1
-				p(i).selectCard(field,i)
+			For Each v In p
+				v.selectCard(field)
 				If field.checkGameEnd() Then Exit Do
 			Next
 		Loop
 
 		field.view()
-		field.result(p.Select(Function(v) CType(v,Player)).ToList())
+		field.result()
 		Console.ReadLine()
 	End Sub
 End Module
