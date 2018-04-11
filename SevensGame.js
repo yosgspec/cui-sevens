@@ -99,142 +99,6 @@ class Player{
 }
 Object.freeze(Player);
 
-//カーソル選択関数
-require("readline").emitKeypressEvents(process.stdin);
-const SelectCursor=items=>{
-	var cursor=0;
-	//カーソルの移動
-	function move(x,max){
-		cursor+=x;
-		if(cursor<0) cursor=0;
-		if(max-1<cursor) cursor=max-1;
-	}
-
-	//カーソルの表示
-	function view(){
-		const select=Array(items.length).fill(false);
-		select[cursor]=true;
-		var s="";
-		for(var i in select){
-			s+=select[i]? `[${items[i]}]`: `${items[i]}`;
-		}
-		process.stdout.write(`${s}\r`);
-	}
-
-	return new Promise(resolve=>{
-		process.stdin.setRawMode(true);
-		view();
-		process.stdin.on("keypress",function self(k,ch){
-			if(ch.name=="return"){
-				console.log();
-				process.stdin.removeListener("keypress",self);
-				return resolve(cursor);
-			}
-			if(ch.name=="left") move(-1,items.length);	//左
-			if(ch.name=="right") move(1,items.length);	//右
-			view();
-		});
-	});
-};
-Object.freeze(SelectCursor);
-
-//七並べプレイヤークラス
-class SevensPlayer extends Player{
-	constructor(name,passes){
-		super(name);
-		this.passes=passes;
-	}
-
-	async selectCard(field,index){
-		if(this.isGameOut) return;
-		if(!field.checkPlayNext(this,this.passes)){
-			field.gameOver(this,index);
-			field.view();
-			console.log(`${this.name} GameOver...\n`);
-			return;
-		}
-
-		console.log(`【${this.name}】Cards: ${this.deck.length} Pass: ${this.passes}`);
-		var items=this.deck.map(v=>v.name);
-		if(0<this.passes) items.push("PS:"+this.passes);
-
-		for(;;){
-			var cursor=await SelectCursor(items);
-
-			if(0<this.passes && items.length-1==cursor){
-				this.passes=0|this.passes-1;
-				field.view();
-				console.log(`残りパスは${this.passes}回です。\n`);
-				break;
-			}
-			else if(field.tryUseCard(this,this.deck[cursor])){
-				field.view();
-				console.log(`俺の切り札!! >「${items[cursor]}」\n`);
-				if(this.deck.length==0){
-					console.log(`${this.name} Congratulations!!\n`);
-					field.gameClear(this,index);
-				}
-				break;
-			}
-			else{
-				console.log("そのカードは出せないのじゃ…\n");
-				continue;
-			}
-		}
-	}
-}
-Object.freeze(SevensPlayer);
-
-//七並べAIプレイヤークラス
-class SevensAIPlayer extends SevensPlayer{
-	constructor(name,passes){
-		super(name,passes);
-	}
-
-	async selectCard(field,index){
-		if(this.isGameOut) return;
-		if(!field.checkPlayNext(this,this.passes)){
-			field.gameOver(this,index);
-			field.view();
-			console.log(`${this.name}> もうだめ...\n`);
-			return;
-		}
-
-		console.log(`【${this.name}】Cards: ${this.deck.length} Pass: ${this.passes}`);
-		var items=this.deck.map(v=>v.name);
-		if(0<this.passes) items.push("PS:"+this.passes);
-
-		process.stdout.write("考え中...\r");
-		await new Promise(res=>setTimeout(res,1000));
-
-		var passCharge=0;
-
-		for(;;){
-			var cursor=Math.floor(Math.random()*items.length);
-
-			if(0<this.passes && items.length-1==cursor){
-				if(passCharge<3){
-					passCharge=0|passCharge+1;
-					continue;
-				}
-				this.passes=0|this.passes-1;
-				console.log(`パスー (残り${this.passes}回)\n`);
-				break;
-			}
-			else if(field.tryUseCard(this,this.deck[cursor])){
-				console.log(`これでも食らいなっ >「${items[cursor]}」\n`);
-				if(this.deck.length==0){
-					console.log(`${this.name}> おっさき～\n`);
-					field.gameClear(this,index);
-				}
-				break;
-			}
-			else continue;
-		}
-	}
-}
-Object.freeze(SevensAIPlayer);
-
 //トランプの場クラス
 class TrumpField{
 	constructor(){
@@ -416,6 +280,149 @@ const Sevens=(()=>{
 	}
 })();
 Object.freeze(Sevens);
+
+//カーソル選択関数
+require("readline").emitKeypressEvents(process.stdin);
+const SelectCursor=items=>{
+	var cursor=0;
+	//カーソルの移動
+	function move(x,max){
+		cursor+=x;
+		if(cursor<0) cursor=0;
+		if(max-1<cursor) cursor=max-1;
+	}
+
+	//カーソルの表示
+	function view(){
+		const select=Array(items.length).fill(false);
+		select[cursor]=true;
+		var s="";
+		for(var i in select){
+			s+=select[i]? `[${items[i]}]`: `${items[i]}`;
+		}
+		process.stdout.write(`${s}\r`);
+	}
+
+	return new Promise(resolve=>{
+		process.stdin.setRawMode(true);
+		view();
+		process.stdin.on("keypress",function self(k,ch){
+			if(ch.name=="return"){
+				console.log();
+				process.stdin.removeListener("keypress",self);
+				return resolve(cursor);
+			}
+			if(ch.name=="left") move(-1,items.length);	//左
+			if(ch.name=="right") move(1,items.length);	//右
+			view();
+		});
+	});
+};
+Object.freeze(SelectCursor);
+
+//七並べプレイヤークラス
+const SevensPlayer=(()=>{
+	const passes=Symbol();
+	return class extends Player{
+		constructor(name,_passes){
+			super(name);
+			this[passes]=_passes;
+		}
+
+		async selectCard(field,index){
+			if(this.isGameOut) return;
+			if(!field.checkPlayNext(this,this[passes])){
+				field.gameOver(this,index);
+				field.view();
+				console.log(`${this.name} GameOver...\n`);
+				return;
+			}
+
+			console.log(`【${this.name}】Cards: ${this.deck.length} Pass: ${this[passes]}`);
+			var items=this.deck.map(v=>v.name);
+			if(0<this[passes]) items.push("PS:"+this[passes]);
+
+			for(;;){
+				var cursor=await SelectCursor(items);
+
+				if(0<this[passes] && items.length-1==cursor){
+					this[passes]=0|this[passes]-1;
+					field.view();
+					console.log(`残りパスは${this[passes]}回です。\n`);
+					break;
+				}
+				else if(field.tryUseCard(this,this.deck[cursor])){
+					field.view();
+					console.log(`俺の切り札!! >「${items[cursor]}」\n`);
+					if(this.deck.length==0){
+						console.log(`${this.name} Congratulations!!\n`);
+						field.gameClear(this,index);
+					}
+					break;
+				}
+				else{
+					console.log("そのカードは出せないのじゃ…\n");
+					continue;
+				}
+			}
+		}
+	}
+})();
+Object.freeze(SevensPlayer);
+
+//七並べAIプレイヤークラス
+const SevensAIPlayer=(()=>{
+	const passes=Symbol();
+	return class extends SevensPlayer{
+		constructor(name,_passes){
+			super(name);
+			this[passes]=_passes;
+		}
+
+		async selectCard(field,index){
+			if(this.isGameOut) return;
+			if(!field.checkPlayNext(this,this[passes])){
+				field.gameOver(this,index);
+				field.view();
+				console.log(`${this.name}> もうだめ...\n`);
+				return;
+			}
+
+			console.log(`【${this.name}】Cards: ${this.deck.length} Pass: ${this[passes]}`);
+			var items=this.deck.map(v=>v.name);
+			if(0<this[passes]) items.push("PS:"+this[passes]);
+
+			process.stdout.write("考え中...\r");
+			await new Promise(res=>setTimeout(res,1000));
+
+			var passCharge=0;
+
+			for(;;){
+				var cursor=Math.floor(Math.random()*items.length);
+
+				if(0<this[passes] && items.length-1==cursor){
+					if(passCharge<3){
+						passCharge=0|passCharge+1;
+						continue;
+					}
+					this[passes]=0|this[passes]-1;
+					console.log(`パスー (残り${this[passes]}回)\n`);
+					break;
+				}
+				else if(field.tryUseCard(this,this.deck[cursor])){
+					console.log(`これでも食らいなっ >「${items[cursor]}」\n`);
+					if(this.deck.length==0){
+						console.log(`${this.name}> おっさき～\n`);
+						field.gameClear(this,index);
+					}
+					break;
+				}
+				else continue;
+			}
+		}
+	}
+})();
+Object.freeze(SevensAIPlayer);
 
 //メイン処理
 (async function(){

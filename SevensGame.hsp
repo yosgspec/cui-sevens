@@ -157,170 +157,6 @@ powerStrs@TrumpCard="Ａ","２","３","４","５","６","７","８","９","10","Ｊ","Ｑ",
 	return
 #global
 
-;カーソル選択モジュール
-#module @SelectCursor
-	#uselib "crtdll"
-	#cfunc getch "_getch"
-
-	;カーソルの移動
-	#deffunc local move int x,int max
-		cursor+=x
-		if cursor<0: cursor=0
-		if max-1<cursor: cursor=max-1
-	return
-
-	#defcfunc SelectCursor array items
-		cursor=0
-		goto*begin
-
-		;カーソルの表示
-		*view
-			dim select,length(items)
-			select(cursor)=1
-			s=""
-			foreach items
-				if select(cnt): s+=strf("[%s]",items(cnt)): else: s+=items(cnt)
-			loop
-			mes strf("%s\r",s),1
-		return
-
-		*begin
-		gosub*view
-		repeat
-			ch=getch()
-			if ch=$0d {
-				mes
-				break
-			}
-			if ch=$e0 {
-				ch=getch()
-				if ch=$4b: move -1,length(items)	;左
-				if ch=$4d: move 1,length(items) 	;右
-			}
-			gosub*view
-		loop
-	return cursor
-#global
-
-;七並べプレイヤーモジュール
-#module SevensPlayer deck,deckCount,isGameOut,name,passes,selectCardFn
-	#modcfunc splPasses
-		return passes
-
-	#define news(%1,%2,%3) newmod %1,SevensPlayer,%2,%3
-	#modinit str _name,int _passes
-		super thismod,_name,_passes
-		selectCardFn=*selectCard
-	return
-	#modfunc local super str _name,int _passes
-		super@Player thismod,_name
-		passes=_passes
-	return
-
-	#modfunc splSelectCard var _field,int _index
-		field=_field:index=_index
-		gosub selectCardFn
-	return
-
-	*selectCard
-		if isGameOut: return
-		if 1!svCheckPlayNext(field,thismod,passes) {
-			svGameOver field,thismod,index
-			svView field
-			mes name+" GameOver...\n"
-			return
-		}
-
-		mes strf("【%s】Cards: %d Pass: %d",name,deckCount,passes)
-		sdim items
-		repeat deckCount
-			items(cnt)=tcName(deck.cnt)
-		loop
-		if 0<passes: items(deckCount)="PS:"+passes
-
-		repeat
-			cursor=SelectCursor(items)
-
-			if 0<passes & length(items)-1=cursor {
-				passes--
-				svView field
-				mes strf("残りパスは%d回です。\n",passes)
-				break
-			}
-			else:if svTryUseCard(field,thismod,deck(cursor)) {
-				svView field
-				mes strf("俺の切り札!! >「%s」\n",items(cursor))
-				if deckCount=0 {
-					mes name+" Congratulations!!\n"
-					svGameClear field,thismod,index
-				}
-				break
-			}
-			else {
-				mes "そのカードは出せないのじゃ…\n"
-				continue
-			}
-		loop
-	return
-#global
-
-;七並べAIプレイヤーモジュール
-#module SevensAIPlayer deck,deckCount,isGameOut,name,passes,selectCardFn
-	#define ctype me(%1) %1@SevensPlayer
-	#define field field@SevensPlayer
-	#define index index@SevensPlayer
-
-	#define news(%1,%2,%3) newmod %1,SevensAIPlayer,%2,%3
-	#modinit str _name,int _passes
-		super@SevensPlayer thismod,_name,_passes
-		selectCardFn=*selectCard
-	return
-
-	*selectCard
-		if me(isGameOut): return
-		if 1!svCheckPlayNext(field,thismod,me(passes)) {
-			svGameOver field,thismod,index
-			svView field
-			mes me(name)+"> もうだめ...\n"
-			return
-		}
-
-		mes strf("【%s】Cards: %d Pass: %d",me(name),me(deckCount),me(passes))
-		sdim items
-		repeat me(deckCount)
-			items(cnt)=tcName(me(deck).cnt)
-		loop
-		if 0<me(passes): items(me(deckCount))="PS:"+me(passes)
-
-		mes "考え中...\r",1
-		wait 100
-
-		passCharge=0
-		repeat
-			cursor=rnd(length(items))
-
-			if 0<me(passes) & length(items)-1=cursor {
-				if passCharge<3 {
-					passCharge++
-					continue
-				}
-				me(passes)--
-				mes strf("パスー (残り%d回)\n",me(passes))
-				break
-			}
-			else:if svTryUseCard(field,thismod,me(deck).cursor) {
-				mes strf("これでも食らいなっ >「%s」\n",items(cursor))
-				if me(deckCount)=0 {
-					mes me(name)+"> おっさき～\n"
-					svGameClear field,thismod,index
-				}
-				break
-			}
-			else :continue
-		loop
-	return
-#global
-
 ;トランプの場モジュール
 #module TrumpField deck,deckCount
 	#define new(%1) dimtype %1,5:newmod %1,TrumpField
@@ -520,6 +356,167 @@ powerStrs@TrumpCard="Ａ","２","３","４","５","６","７","８","９","10","Ｊ","Ｑ",
 				rankStr="GameOver..."
 			}
 			mes strf("%s: %s",plName(players.cnt),rankStr)
+		loop
+	return
+#global
+
+;カーソル選択モジュール
+#module @SelectCursor
+	#uselib "crtdll"
+	#cfunc getch "_getch"
+
+	;カーソルの移動
+	#deffunc local move int x,int max
+		cursor+=x
+		if cursor<0: cursor=0
+		if max-1<cursor: cursor=max-1
+	return
+
+	#defcfunc SelectCursor array items
+		cursor=0
+		goto*begin
+
+		;カーソルの表示
+		*view
+			dim select,length(items)
+			select(cursor)=1
+			s=""
+			foreach items
+				if select(cnt): s+=strf("[%s]",items(cnt)): else: s+=items(cnt)
+			loop
+			mes strf("%s\r",s),1
+		return
+
+		*begin
+		gosub*view
+		repeat
+			ch=getch()
+			if ch=$0d {
+				mes
+				break
+			}
+			if ch=$e0 {
+				ch=getch()
+				if ch=$4b: move -1,length(items)	;左
+				if ch=$4d: move 1,length(items) 	;右
+			}
+			gosub*view
+		loop
+	return cursor
+#global
+
+;七並べプレイヤーモジュール
+#module SevensPlayer deck,deckCount,isGameOut,name,passes,selectCardFn
+	#define news(%1,%2,%3) newmod %1,SevensPlayer,%2,%3
+	#modinit str _name,int _passes
+		super thismod,_name,_passes
+		selectCardFn=*selectCard
+	return
+	#modfunc local super str _name,int _passes
+		super@Player thismod,_name
+		passes=_passes
+	return
+
+	#modfunc splSelectCard var _field,int _index
+		field=_field:index=_index
+		gosub selectCardFn
+	return
+
+	*selectCard
+		if isGameOut: return
+		if 1!svCheckPlayNext(field,thismod,passes) {
+			svGameOver field,thismod,index
+			svView field
+			mes name+" GameOver...\n"
+			return
+		}
+
+		mes strf("【%s】Cards: %d Pass: %d",name,deckCount,passes)
+		sdim items
+		repeat deckCount
+			items(cnt)=tcName(deck.cnt)
+		loop
+		if 0<passes: items(deckCount)="PS:"+passes
+
+		repeat
+			cursor=SelectCursor(items)
+
+			if 0<passes & length(items)-1=cursor {
+				passes--
+				svView field
+				mes strf("残りパスは%d回です。\n",passes)
+				break
+			}
+			else:if svTryUseCard(field,thismod,deck(cursor)) {
+				svView field
+				mes strf("俺の切り札!! >「%s」\n",items(cursor))
+				if deckCount=0 {
+					mes name+" Congratulations!!\n"
+					svGameClear field,thismod,index
+				}
+				break
+			}
+			else {
+				mes "そのカードは出せないのじゃ…\n"
+				continue
+			}
+		loop
+	return
+#global
+
+;七並べAIプレイヤーモジュール
+#module SevensAIPlayer deck,deckCount,isGameOut,name,passes,selectCardFn
+	#define ctype me(%1) %1@SevensPlayer
+	#define field field@SevensPlayer
+	#define index index@SevensPlayer
+
+	#define news(%1,%2,%3) newmod %1,SevensAIPlayer,%2,%3
+	#modinit str _name,int _passes
+		super@SevensPlayer thismod,_name,_passes
+		selectCardFn=*selectCard
+	return
+
+	*selectCard
+		if me(isGameOut): return
+		if 1!svCheckPlayNext(field,thismod,me(passes)) {
+			svGameOver field,thismod,index
+			svView field
+			mes me(name)+"> もうだめ...\n"
+			return
+		}
+
+		mes strf("【%s】Cards: %d Pass: %d",me(name),me(deckCount),me(passes))
+		sdim items
+		repeat me(deckCount)
+			items(cnt)=tcName(me(deck).cnt)
+		loop
+		if 0<me(passes): items(me(deckCount))="PS:"+me(passes)
+
+		mes "考え中...\r",1
+		wait 100
+
+		passCharge=0
+		repeat
+			cursor=rnd(length(items))
+
+			if 0<me(passes) & length(items)-1=cursor {
+				if passCharge<3 {
+					passCharge++
+					continue
+				}
+				me(passes)--
+				mes strf("パスー (残り%d回)\n",me(passes))
+				break
+			}
+			else:if svTryUseCard(field,thismod,me(deck).cursor) {
+				mes strf("これでも食らいなっ >「%s」\n",items(cursor))
+				if me(deckCount)=0 {
+					mes me(name)+"> おっさき～\n"
+					svGameClear field,thismod,index
+				}
+				break
+			}
+			else :continue
 		loop
 	return
 #global

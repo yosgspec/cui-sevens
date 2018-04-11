@@ -72,20 +72,8 @@ class TrumpDeck{
 	}
 }
 
-//プレイヤーインターフェイス
-interface IPlayer{
-	List<TrumpCard> deck{get;}
-	string name{get;set;}
-	bool isGameOut{get;set;}
-	void sortDeck();
-	void addCard(TrumpCard card);
-	void removeCard(string cardName);
-	int existCard(string cardName);
-	void gameOut();
-}
-
 //プレイヤークラス
-class Player:IPlayer{
+class Player{
 	public List<TrumpCard> deck{get;}=new List<TrumpCard>();
 	public string name{get;set;}
 	public bool isGameOut{get;set;}
@@ -118,142 +106,13 @@ class Player:IPlayer{
 	}
 }
 
-//カーソル選択モジュール
-static class SelectCursors{
-	public static int SelectCursor(List<string> items){
-		var cursor=0;
-		//カーソルの移動
-		Action<int,int> move=(x,max)=>{
-			cursor+=x;
-			if(cursor<0) cursor=0;
-			if(max-1<cursor) cursor=max-1;
-		};
-
-		//カーソルの表示
-		Action view=()=>{
-			var select=new bool[items.Count];
-			select[cursor]=true;
-			var s="";
-			for(int i=0;i<items.Count;i++){
-				s+=select[i]? $"[{items[i]}]": items[i];
-			}
-			Console.Write($"{s}\r");
-		};
-
-		view();
-		for(;;){
-			var ch=Console.ReadKey(true);
-			if(ch.Key==ConsoleKey.Enter){
-				Console.WriteLine();
-				return cursor;
-			}
-			if(ch.Key==ConsoleKey.LeftArrow) move(-1,items.Count);	//左
-			if(ch.Key==ConsoleKey.RightArrow) move(1,items.Count);	//右
-			view();
-		}
-	}
-}
-
-//七並べプレイヤークラス
-class SevensPlayer:Player,IPlayer{
-	protected int passes;
-	public SevensPlayer(string name,int passes):base(name){
-		this.passes=passes;
-	}
-
-	public virtual void selectCard(Sevens field,int index){
-		if(isGameOut) return;
-		if(!field.checkPlayNext(this,passes)){
-			field.gameOver(this,index);
-			field.view();
-			Console.WriteLine($"{name} GameOver...\n");
-			return;
-		}
-
-		Console.WriteLine($"【{name}】Cards: {deck.Count} Pass: {passes}");
-		var items=new List<string>(deck.Select(v=>v.name));
-		if(0<passes) items.Add("PS:"+passes);
-
-		for(;;){
-			var cursor=SelectCursors.SelectCursor(items);
-
-			if(0<passes && items.Count-1==cursor){
-				passes--;
-				field.view();
-				Console.WriteLine($"残りパスは{passes}回です。\n");
-				break;
-			}
-			else if(field.tryUseCard(this,deck[cursor])){
-				field.view();
-				Console.WriteLine($"俺の切り札!! >「{items[cursor]}」\n");
-				if(deck.Count==0){
-					Console.WriteLine($"{name} Congratulations!!\n");
-					field.gameClear(this,index);
-				}
-				break;
-			}
-			else{
-				Console.WriteLine("そのカードは出せないのじゃ…\n");
-				continue;
-			}
-		}
-	}
-}
-
-//七並べAIプレイヤークラス
-class SevensAIPlayer:SevensPlayer,IPlayer{
-	public SevensAIPlayer(string name,int passes):base(name,passes){}
-
-	public override void selectCard(Sevens field,int index){
-		if(isGameOut) return;
-		if(!field.checkPlayNext(this,passes)){
-			field.gameOver(this,index);
-			field.view();
-			Console.WriteLine($"{name}> もうだめ...\n");
-			return;
-		}
-
-		Console.WriteLine($"【{name}】Cards: {deck.Count} Pass: {passes}");
-		var items=new List<string>(deck.Select(v=>v.name));
-		if(0<passes) items.Add("PS:"+passes);
-
-		Console.Write("考え中...\r");
-		System.Threading.Thread.Sleep(1000);
-
-		var passCharge=0;
-
-		for(;;){
-			var cursor=TrumpDeck.rand.Next(items.Count);
-
-			if(0<passes && items.Count-1==cursor){
-				if(passCharge<3){
-					passCharge++;
-					continue;
-				}
-				passes--;
-				Console.WriteLine($"パスー (残り{passes}回)\n");
-				break;
-			}
-			else if(field.tryUseCard(this,deck[cursor])){
-				Console.WriteLine($"これでも食らいなっ >「{items[cursor]}」\n");
-				if(deck.Count==0){
-					Console.WriteLine($"{name}> おっさき～\n");
-					field.gameClear(this,index);
-				}
-				break;
-			}
-			else continue;
-		}
-	}
-}
-
 //トランプの場クラス
 class TrumpField{
 	public readonly List<TrumpCard> deck=new List<TrumpCard>();
 
 	public void sortDeck(){Player.sortRefDeck(deck);}
 
-	public virtual void useCard(IPlayer player,TrumpCard card){
+	public virtual void useCard(Player player,TrumpCard card){
 		deck.Add(card);
 		player.removeCard(card.name);
 	}
@@ -309,7 +168,7 @@ class Sevens:TrumpField{
 	readonly int[] rank;
 	public int clearCount;
 	
-	public Sevens(List<IPlayer> players):base(){
+	public Sevens(List<Player> players):base(){
 		lines=Enumerable.Range(0,TrumpCard.suits).Select(x=>new SevensLine()).ToArray();
 		rank=new int[players.Count];
 		clearCount=0;
@@ -335,7 +194,7 @@ class Sevens:TrumpField{
 		Console.WriteLine();
 	}
 
-	public override void useCard(IPlayer player,TrumpCard card){
+	public override void useCard(Player player,TrumpCard card){
 		lines[card.suit].useCard(card.power);
 		base.useCard(player,card);
 	}
@@ -344,13 +203,13 @@ class Sevens:TrumpField{
 		return lines[card.suit].checkUseCard(card.power);
 	}
 
-	public bool tryUseCard(IPlayer player,TrumpCard card){
+	public bool tryUseCard(Player player,TrumpCard card){
 		if(!checkUseCard(card)) return false;
 		useCard(player,card);
 		return true;
 	}
 
-	public bool checkPlayNext(IPlayer player,int passes){
+	public bool checkPlayNext(Player player,int passes){
 		if(0<passes) return true;
 		foreach(var card in player.deck){
 			if(checkUseCard(card)){
@@ -360,13 +219,13 @@ class Sevens:TrumpField{
 		return false;
 	}
 
-	public void gameClear(IPlayer player,int index){
+	public void gameClear(Player player,int index){
 		clearCount++;
 		rank[index]=clearCount;
 		player.gameOut();
 	}
 
-	public void gameOver(IPlayer player,int index){
+	public void gameOver(Player player,int index){
 		rank[index]=-1;
 		for(var i=player.deck.Count-1;i>=0;i--){
 			useCard(player,player.deck[i]);
@@ -400,7 +259,7 @@ class Sevens:TrumpField{
 		Console.WriteLine(s);
 	}
 
-	public void result(List<IPlayer> players){
+	public void result(List<Player> players){
 		Console.WriteLine("\n【Game Result】");
 		string rankStr;
 		for(var i=0;i<rank.Length;i++){
@@ -414,6 +273,135 @@ class Sevens:TrumpField{
 				rankStr="GameOver...";
 			}
 			Console.WriteLine($"{players[i].name}: {rankStr}");
+		}
+	}
+}
+
+//カーソル選択モジュール
+static class SelectCursors{
+	public static int SelectCursor(List<string> items){
+		var cursor=0;
+		//カーソルの移動
+		Action<int,int> move=(x,max)=>{
+			cursor+=x;
+			if(cursor<0) cursor=0;
+			if(max-1<cursor) cursor=max-1;
+		};
+
+		//カーソルの表示
+		Action view=()=>{
+			var select=new bool[items.Count];
+			select[cursor]=true;
+			var s="";
+			for(int i=0;i<items.Count;i++){
+				s+=select[i]? $"[{items[i]}]": items[i];
+			}
+			Console.Write($"{s}\r");
+		};
+
+		view();
+		for(;;){
+			var ch=Console.ReadKey(true);
+			if(ch.Key==ConsoleKey.Enter){
+				Console.WriteLine();
+				return cursor;
+			}
+			if(ch.Key==ConsoleKey.LeftArrow) move(-1,items.Count);	//左
+			if(ch.Key==ConsoleKey.RightArrow) move(1,items.Count);	//右
+			view();
+		}
+	}
+}
+
+//七並べプレイヤークラス
+class SevensPlayer:Player{
+	protected int passes;
+	public SevensPlayer(string name,int passes):base(name){
+		this.passes=passes;
+	}
+
+	public virtual void selectCard(Sevens field,int index){
+		if(isGameOut) return;
+		if(!field.checkPlayNext(this,passes)){
+			field.gameOver(this,index);
+			field.view();
+			Console.WriteLine($"{name} GameOver...\n");
+			return;
+		}
+
+		Console.WriteLine($"【{name}】Cards: {deck.Count} Pass: {passes}");
+		var items=new List<string>(deck.Select(v=>v.name));
+		if(0<passes) items.Add("PS:"+passes);
+
+		for(;;){
+			var cursor=SelectCursors.SelectCursor(items);
+
+			if(0<passes && items.Count-1==cursor){
+				passes--;
+				field.view();
+				Console.WriteLine($"残りパスは{passes}回です。\n");
+				break;
+			}
+			else if(field.tryUseCard(this,deck[cursor])){
+				field.view();
+				Console.WriteLine($"俺の切り札!! >「{items[cursor]}」\n");
+				if(deck.Count==0){
+					Console.WriteLine($"{name} Congratulations!!\n");
+					field.gameClear(this,index);
+				}
+				break;
+			}
+			else{
+				Console.WriteLine("そのカードは出せないのじゃ…\n");
+				continue;
+			}
+		}
+	}
+}
+
+//七並べAIプレイヤークラス
+class SevensAIPlayer:SevensPlayer{
+	public SevensAIPlayer(string name,int passes):base(name,passes){}
+
+	public override void selectCard(Sevens field,int index){
+		if(isGameOut) return;
+		if(!field.checkPlayNext(this,passes)){
+			field.gameOver(this,index);
+			field.view();
+			Console.WriteLine($"{name}> もうだめ...\n");
+			return;
+		}
+
+		Console.WriteLine($"【{name}】Cards: {deck.Count} Pass: {passes}");
+		var items=new List<string>(deck.Select(v=>v.name));
+		if(0<passes) items.Add("PS:"+passes);
+
+		Console.Write("考え中...\r");
+		System.Threading.Thread.Sleep(1000);
+
+		var passCharge=0;
+
+		for(;;){
+			var cursor=TrumpDeck.rand.Next(items.Count);
+
+			if(0<passes && items.Count-1==cursor){
+				if(passCharge<3){
+					passCharge++;
+					continue;
+				}
+				passes--;
+				Console.WriteLine($"パスー (残り{passes}回)\n");
+				break;
+			}
+			else if(field.tryUseCard(this,deck[cursor])){
+				Console.WriteLine($"これでも食らいなっ >「{items[cursor]}」\n");
+				if(deck.Count==0){
+					Console.WriteLine($"{name}> おっさき～\n");
+					field.gameClear(this,index);
+				}
+				break;
+			}
+			else continue;
 		}
 	}
 }
@@ -451,7 +439,7 @@ Console.WriteLine(
 			v.sortDeck();
 		}
 
-		var field=new Sevens(p.Select(v=>(IPlayer)v).ToList());
+		var field=new Sevens(p.Select(v=>(Player)v).ToList());
 
 		for(;;){
 			field.view();
@@ -463,7 +451,7 @@ Console.WriteLine(
 		selectLoop:
 
 		field.view();
-		field.result(p.Select(v=>(IPlayer)v).ToList());
+		field.result(p.Select(v=>(Player)v).ToList());
 		Console.ReadLine();
 	}
 }

@@ -73,25 +73,11 @@ Class TrumpDeck
 	End Function
 End Class
 
-'プレイヤーフェイス
-Interface IPlayer
-	ReadOnly Property deck As List(Of TrumpCard)
-	Property name As String
-	Property isGameOut As Boolean
-	Sub sortDeck
-	Sub addCard(card As TrumpCard)
-	Sub removeCard(cardName As String)
-	Function existCard(cardName As String) As Integer
-	Sub gameOut()
-End Interface
-
 'プレイヤークラス
 Class Player
-	Implements IPlayer
-
-	ReadOnly Property deck As New List(Of TrumpCard)() Implements IPlayer.deck
-	Property name As String Implements IPlayer.name
-	Property isGameOut As Boolean Implements IPlayer.isGameOut
+	Public ReadOnly deck As New List(Of TrumpCard)()
+	Public name As String
+	Public isGameOut As Boolean
 
 	Sub New(name As String)
 		Me.name=name
@@ -102,164 +88,23 @@ Class Player
 		deck.Sort(Function(a,b) sortValue(a)-sortValue(b))
 	End Sub
 	
-	Sub sortDeck() Implements IPlayer.sortDeck
+	Sub sortDeck()
 		sortRefDeck(deck):End Sub
 
-	Sub addCard(card As TrumpCard) Implements IPlayer.addCard
+	Sub addCard(card As TrumpCard)
 		deck.Add(card)
 	End Sub
 
-	Sub removeCard(cardName As String) Implements IPlayer.removeCard
+	Sub removeCard(cardName As String)
 		deck.Remove(deck.Find(Function(v) v.name=cardName))
 	End Sub
 
-	Function existCard(cardName As String) As Integer Implements IPlayer.existCard
+	Function existCard(cardName As String) As Integer
 		Return deck.FindIndex(Function(v) v.name=cardName)
 	End Function
 
-	Sub gameOut() Implements IPlayer.gameOut
+	Sub gameOut()
 		isGameOut=True
-	End Sub
-End Class
-
-'カーソル選択モジュール
-Module SelectCursors
-	Function SelectCursor(items As List(Of String)) As Integer
-		Dim cursor=0
-		'カーソルの移動
-		Dim move As Action(Of Integer,Integer)=Sub(x,max)
-			cursor+=x
-			If cursor<0 Then cursor=0
-			If max-1<cursor Then cursor=max-1
-		End Sub
-
-		'カーソルの表示
-		Dim view As Action=Sub()
-			Dim _select(items.Count-1) As Boolean
-			_select(cursor)=True
-			Dim s=""
-			For  i=0 To items.Count-1
-				s+=If (_select(i),$"[{items(i)}]",items(i))
-			Next
-			Console.Write($"{s}{vbCr}")
-		End Sub
-
-		view()
-		Do
-			Dim ch=Console.ReadKey(True)
-			If  ch.Key=ConsoleKey.Enter Then
-				Console.WriteLine()
-				Return cursor
-			End If 
-			If  ch.Key=ConsoleKey.LeftArrow Then move(-1,items.Count)	'左
-			If  ch.Key=ConsoleKey.RightArrow Then move(1,items.Count)	'右
-			view()
-		Loop
-	End Function
-End Module
-
-'七並べプレイヤークラス
-Class SevensPlayer
-	Inherits Player
-	Implements IPlayer
-
-	Public passes As Integer
-	Sub New(name As String,passes As Integer)
-		MyBase.New(name)
-		Me.passes=passes
-	End Sub
-
-	OverRidable Sub selectCard(field As Sevens,index As Integer)
-		If isGameOut Then Exit Sub
-		If Not field.checkPlayNext(Me,passes) Then
-			field.gameOver(Me,index)
-			field.view()
-			Console.WriteLine($"{name} GameOver...{vbLf}")
-			Exit Sub
-		End If
-
-		Console.WriteLine($"【{name}】Cards: {deck.Count} Pass: {passes}")
-		Dim items=New List(Of string)(deck.Select(Function(v) v.name))
-		If 0<passes Then items.Add("PS:" & passes)
-
-		Do
-			Dim cursor=SelectCursors.SelectCursor(items)
-
-			If 0<passes And items.Count-1=cursor Then
-				passes-=1
-				field.view()
-				Console.WriteLine($"残りパスは{passes}回です。{vbLf}")
-				Exit Do
-
-			ElseIf field.tryUseCard(Me,deck(cursor)) Then
-				field.view()
-				Console.WriteLine($"俺の切り札!! >「{items(cursor)}」{vbLf}")
-				If deck.Count=0 Then
-					Console.WriteLine($"{name} Congratulations!!{vbLf}")
-					field.gameClear(Me,index)
-				End If
-				Exit Do
-
-			Else
-				Console.WriteLine($"そのカードは出せないのじゃ…{vbLf}")
-				Continue Do
-			End If
-		Loop
-	End Sub
-End Class
-
-'七並べAIプレイヤークラス
-Class SevensAIPlayer
-	Inherits SevensPlayer
-	Implements IPlayer
-
-	Sub New(name As String,passes As Integer)
-		MyBase.New(name,passes)
-	End Sub
-
-	Overrides Sub selectCard(field As Sevens,index As Integer)
-		If isGameOut Then Exit Sub
-		If Not field.checkPlayNext(Me,passes) Then
-			field.gameOver(Me,index)
-			field.view()
-			Console.WriteLine($"{name}> もうだめ...{vbLf}")
-			Exit Sub
-		End If
-
-		Console.WriteLine($"【{name}】Cards: {deck.Count} Pass: {passes}")
-		Dim items=new List(Of string)(deck.Select(Function(v) v.name))
-		If 0<passes Then items.Add("PS:" & passes)
-
-		Console.Write($"考え中...{vbCr}")
-		Threading.Thread.Sleep(1000)
-
-		Dim passCharge=0
-
-		Do
-			Dim cursor=TrumpDeck.rand.Next(items.Count)
-
-			If 0<passes And items.Count-1=cursor Then
-				If passCharge<3 Then
-					passCharge+=1
-					Continue Do
-				End If
-
-				passes-=1
-				Console.WriteLine($"パスー (残り{passes}回){vbLf}")
-				Exit Do
-
-			ElseIf field.tryUseCard(Me,deck(cursor)) Then
-				Console.WriteLine($"これでも食らいなっ >「{items(cursor)}」{vbLf}")
-				If deck.Count=0 Then
-					Console.WriteLine($"{name}> おっさき～{vbLf}")
-					field.gameClear(Me,index)
-				End If
-				Exit Do
-
-			Else
-				Continue Do
-			End If
-		Loop
 	End Sub
 End Class
 
@@ -270,7 +115,7 @@ Class TrumpField
 	Sub sortDeck()
 		Player.sortRefDeck(deck):End Sub
 
-	OverRidable Sub useCard(player As IPlayer,card As TrumpCard)
+	OverRidable Sub useCard(player As Player,card As TrumpCard)
 		deck.Add(card)
 		player.removeCard(card.name)
 	End Sub
@@ -327,7 +172,7 @@ Class Sevens
 	ReadOnly rank As Integer()
 	Public clearCount As Integer
 
-	Sub New(players As List(Of IPlayer))
+	Sub New(players As List(Of Player))
 		MyBase.New()
 		lines=Enumerable.Range(0,TrumpCard.suits).Select(Function(x) New SevensLine()).ToArray()
 		ReDim rank(players.Count-1)
@@ -354,7 +199,7 @@ Class Sevens
 		Console.WriteLine()
 	End Sub
 
-	Overrides Sub useCard(player As IPlayer,card As TrumpCard)
+	Overrides Sub useCard(player As Player,card As TrumpCard)
 		lines(card.suit).useCard(card.power)
 		MyBase.useCard(player,card)
 	End Sub
@@ -363,13 +208,13 @@ Class Sevens
 		Return lines(card.suit).checkUseCard(card.power)
 	End Function
 
-	Function tryUseCard(player As IPlayer,card As TrumpCard) As Boolean
+	Function tryUseCard(player As Player,card As TrumpCard) As Boolean
 		If Not checkUseCard(card) Then Return False
 		useCard(player,card)
 		Return True
 	End Function
 
-	Function checkPlayNext(player As IPlayer,passes As Integer) As Boolean
+	Function checkPlayNext(player As Player,passes As Integer) As Boolean
 		If 0<passes Then Return True
 		For Each card In player.deck
 			If checkUseCard(card) Then _
@@ -378,13 +223,13 @@ Class Sevens
 		Return False
 	End Function
 
-	Sub gameClear(player As IPlayer,index As Integer)
+	Sub gameClear(player As Player,index As Integer)
 		clearCount+=1
 		rank(index)=clearCount
 		player.gameOut()
 	End Sub
 
-	Sub gameOver(player As IPlayer,index As Integer)
+	Sub gameOver(player As Player,index As Integer)
 		rank(index)=-1
 		For i=player.deck.Count-1 To 0 Step -1
 			useCard(player,player.deck(i))
@@ -417,7 +262,7 @@ Class Sevens
 		Console.WriteLine(s)
 	End Sub
 
-	Sub result(players As List(Of IPlayer))
+	Sub result(players As List(Of Player))
 		Console.WriteLine($"{vbLf}【Game Result】")
 		Dim rankStr As String
 		For i=0 To rank.Length-1
@@ -430,6 +275,145 @@ Class Sevens
 			End If
 			Console.WriteLine($"{players(i).name}: {rankStr}")
 		Next
+	End Sub
+End Class
+
+'カーソル選択モジュール
+Module SelectCursors
+	Function SelectCursor(items As List(Of String)) As Integer
+		Dim cursor=0
+		'カーソルの移動
+		Dim move As Action(Of Integer,Integer)=Sub(x,max)
+			cursor+=x
+			If cursor<0 Then cursor=0
+			If max-1<cursor Then cursor=max-1
+		End Sub
+
+		'カーソルの表示
+		Dim view As Action=Sub()
+			Dim _select(items.Count-1) As Boolean
+			_select(cursor)=True
+			Dim s=""
+			For  i=0 To items.Count-1
+				s+=If (_select(i),$"[{items(i)}]",items(i))
+			Next
+			Console.Write($"{s}{vbCr}")
+		End Sub
+
+		view()
+		Do
+			Dim ch=Console.ReadKey(True)
+			If  ch.Key=ConsoleKey.Enter Then
+				Console.WriteLine()
+				Return cursor
+			End If 
+			If  ch.Key=ConsoleKey.LeftArrow Then move(-1,items.Count)	'左
+			If  ch.Key=ConsoleKey.RightArrow Then move(1,items.Count)	'右
+			view()
+		Loop
+	End Function
+End Module
+
+'七並べプレイヤークラス
+Class SevensPlayer
+	Inherits Player
+
+	Protected passes As Integer
+	Sub New(name As String,passes As Integer)
+		MyBase.New(name)
+		Me.passes=passes
+	End Sub
+
+	OverRidable Sub selectCard(field As Sevens,index As Integer)
+		If isGameOut Then Exit Sub
+		If Not field.checkPlayNext(Me,passes) Then
+			field.gameOver(Me,index)
+			field.view()
+			Console.WriteLine($"{name} GameOver...{vbLf}")
+			Exit Sub
+		End If
+
+		Console.WriteLine($"【{name}】Cards: {deck.Count} Pass: {passes}")
+		Dim items=New List(Of string)(deck.Select(Function(v) v.name))
+		If 0<passes Then items.Add("PS:" & passes)
+
+		Do
+			Dim cursor=SelectCursors.SelectCursor(items)
+
+			If 0<passes And items.Count-1=cursor Then
+				passes-=1
+				field.view()
+				Console.WriteLine($"残りパスは{passes}回です。{vbLf}")
+				Exit Do
+
+			ElseIf field.tryUseCard(Me,deck(cursor)) Then
+				field.view()
+				Console.WriteLine($"俺の切り札!! >「{items(cursor)}」{vbLf}")
+				If deck.Count=0 Then
+					Console.WriteLine($"{name} Congratulations!!{vbLf}")
+					field.gameClear(Me,index)
+				End If
+				Exit Do
+
+			Else
+				Console.WriteLine($"そのカードは出せないのじゃ…{vbLf}")
+				Continue Do
+			End If
+		Loop
+	End Sub
+End Class
+
+'七並べAIプレイヤークラス
+Class SevensAIPlayer
+	Inherits SevensPlayer
+
+	Sub New(name As String,passes As Integer)
+		MyBase.New(name,passes)
+	End Sub
+
+	Overrides Sub selectCard(field As Sevens,index As Integer)
+		If isGameOut Then Exit Sub
+		If Not field.checkPlayNext(Me,passes) Then
+			field.gameOver(Me,index)
+			field.view()
+			Console.WriteLine($"{name}> もうだめ...{vbLf}")
+			Exit Sub
+		End If
+
+		Console.WriteLine($"【{name}】Cards: {deck.Count} Pass: {passes}")
+		Dim items=new List(Of string)(deck.Select(Function(v) v.name))
+		If 0<passes Then items.Add("PS:" & passes)
+
+		Console.Write($"考え中...{vbCr}")
+		Threading.Thread.Sleep(1000)
+
+		Dim passCharge=0
+
+		Do
+			Dim cursor=TrumpDeck.rand.Next(items.Count)
+
+			If 0<passes And items.Count-1=cursor Then
+				If passCharge<3 Then
+					passCharge+=1
+					Continue Do
+				End If
+
+				passes-=1
+				Console.WriteLine($"パスー (残り{passes}回){vbLf}")
+				Exit Do
+
+			ElseIf field.tryUseCard(Me,deck(cursor)) Then
+				Console.WriteLine($"これでも食らいなっ >「{items(cursor)}」{vbLf}")
+				If deck.Count=0 Then
+					Console.WriteLine($"{name}> おっさき～{vbLf}")
+					field.gameClear(Me,index)
+				End If
+				Exit Do
+
+			Else
+				Continue Do
+			End If
+		Loop
 	End Sub
 End Class
 
@@ -467,7 +451,7 @@ $"/---------------------------------------/
 			v.sortDeck()
 		Next
 
-		Dim field=New Sevens(p.Select(Function(v) CType(v,IPlayer)).ToList())
+		Dim field=New Sevens(p.Select(Function(v) CType(v,Player)).ToList())
 
 		Do
 			field.view()
@@ -478,7 +462,7 @@ $"/---------------------------------------/
 		Loop
 
 		field.view()
-		field.result(p.Select(Function(v) CType(v,IPlayer)).ToList())
+		field.result(p.Select(Function(v) CType(v,Player)).ToList())
 		Console.ReadLine()
 	End Sub
 End Module

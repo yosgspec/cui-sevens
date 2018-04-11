@@ -76,124 +76,6 @@ class Player:
 	def gameOut(self):
 		self.isGameOut=True
 
-#カーソル選択モジュール
-def SelectCursor(items):
-	cursor=0
-	#カーソルの移動
-	def move(x,max):
-		nonlocal cursor
-		cursor+=x
-		if cursor<0: cursor=0
-		if max-1<cursor: cursor=max-1
-
-	#カーソルの表示
-	def view():
-		nonlocal items,cursor
-		select=[False for i in items]
-		select[cursor]=True
-		s=""
-		for i in range(len(items)):
-			s+=f"[{items[i]}]" if select[i] else items[i]
-		print(f"{s}\r",end="")
-
-	view()
-	from msvcrt import getch
-	while True:
-		ch=ord(getch())
-		if ch==0x0d:
-			print()
-			break
-
-		if ch==0xe0:
-			ch=ord(getch())
-			if ch==0x4b: move(-1,len(items))	#左
-			if ch==0x4d: move(1,len(items))		#右
-
-		view()
-	return cursor
-
-#七並べプレイヤークラス
-class SevensPlayer(Player):
-	def __init__(self,name,passes):
-		super().__init__(name)
-		self.passes=passes
-
-	def selectCard(self,field,index):
-		if self.isGameOut: return
-		if not field.checkPlayNext(self,self.passes):
-			field.gameOver(self,index)
-			field.view()
-			print(f"{self.name} GameOver...\n")
-			return
-
-		print(f"【{self.name}】Cards: {len(self.deck)} Pass: {self.passes}")
-		items=[v.name for v in self.deck]
-		if 0<self.passes: items.append(f"PS:{self.passes}")
-
-		while True:
-			cursor=SelectCursor(items)
-
-			if 0<self.passes and len(items)-1==cursor:
-				self.passes-=1
-				field.view()
-				print(f"残りパスは{self.passes}回です。\n")
-				break
-
-			elif field.tryUseCard(self,self.deck[cursor]):
-				field.view()
-				print(f"俺の切り札!! >「{items[cursor]}」\n")
-				if len(self.deck)==0:
-					print(f"{self.name} Congratulations!!\n")
-					field.gameClear(self,index)
-				break
-
-			else:
-				print(f"そのカードは出せないのじゃ…\n")
-				continue
-
-#七並べAIプレイヤークラス
-class SevensAIPlayer(SevensPlayer):
-	def __init__(self,name,passes):
-		super().__init__(name,passes)
-
-	def selectCard(self,field,index):
-		if self.isGameOut: return
-		if not field.checkPlayNext(self,self.passes):
-			field.gameOver(self,index)
-			field.view()
-			print(f"{self.name}> もうだめ...\n")
-			return
-
-		print(f"【{self.name}】Cards: {len(self.deck)} Pass: {self.passes}")
-		items=[v.name for v in self.deck]
-		if 0<self.passes: items.append(f"PS:{self.passes}")
-
-		print("考え中...",end="\r")
-		import time
-		time.sleep(1)
-
-		passCharge=0
-		while True:
-			cursor=random.randrange(len(items))
-
-			if 0<self.passes and len(items)-1==cursor:
-				if passCharge<3:
-					passCharge+=1
-					continue
-
-				self.passes-=1
-				print(f"パスー (残り{self.passes}回)\n")
-				break
-
-			elif field.tryUseCard(self,self.deck[cursor]):
-				print(f"これでも食らいなっ >「{items[cursor]}」\n")
-				if len(self.deck)==0:
-					print(f"{self.name}> おっさき～\n")
-					field.gameClear(self,index)
-				break
-
-			else: continue
-
 #トランプの場クラス
 class TrumpField:
 	def __init__(self):
@@ -326,6 +208,124 @@ class Sevens(TrumpField):
 				rankStr="GameOver..."
 			print(f"{players[i].name}: {rankStr}")
 
+#カーソル選択モジュール
+def SelectCursor(items):
+	cursor=0
+	#カーソルの移動
+	def move(x,max):
+		nonlocal cursor
+		cursor+=x
+		if cursor<0: cursor=0
+		if max-1<cursor: cursor=max-1
+
+	#カーソルの表示
+	def view():
+		nonlocal items,cursor
+		select=[False for i in items]
+		select[cursor]=True
+		s=""
+		for i in range(len(items)):
+			s+=f"[{items[i]}]" if select[i] else items[i]
+		print(f"{s}\r",end="")
+
+	view()
+	from msvcrt import getch
+	while True:
+		ch=ord(getch())
+		if ch==0x0d:
+			print()
+			break
+
+		if ch==0xe0:
+			ch=ord(getch())
+			if ch==0x4b: move(-1,len(items))	#左
+			if ch==0x4d: move(1,len(items))		#右
+
+		view()
+	return cursor
+
+#七並べプレイヤークラス
+class SevensPlayer(Player):
+	def __init__(self,name,passes):
+		super().__init__(name)
+		self._passes=passes
+
+	def selectCard(self,field,index):
+		if self.isGameOut: return
+		if not field.checkPlayNext(self,self._passes):
+			field.gameOver(self,index)
+			field.view()
+			print(f"{self.name} GameOver...\n")
+			return
+
+		print(f"【{self.name}】Cards: {len(self.deck)} Pass: {self._passes}")
+		items=[v.name for v in self.deck]
+		if 0<self._passes: items.append(f"PS:{self._passes}")
+
+		while True:
+			cursor=SelectCursor(items)
+
+			if 0<self._passes and len(items)-1==cursor:
+				self._passes-=1
+				field.view()
+				print(f"残りパスは{self._passes}回です。\n")
+				break
+
+			elif field.tryUseCard(self,self.deck[cursor]):
+				field.view()
+				print(f"俺の切り札!! >「{items[cursor]}」\n")
+				if len(self.deck)==0:
+					print(f"{self.name} Congratulations!!\n")
+					field.gameClear(self,index)
+				break
+
+			else:
+				print(f"そのカードは出せないのじゃ…\n")
+				continue
+
+#七並べAIプレイヤークラス
+class SevensAIPlayer(SevensPlayer):
+	def __init__(self,name,passes):
+		super().__init__(name,passes)
+
+	def selectCard(self,field,index):
+		if self.isGameOut: return
+		if not field.checkPlayNext(self,self._passes):
+			field.gameOver(self,index)
+			field.view()
+			print(f"{self.name}> もうだめ...\n")
+			return
+
+		print(f"【{self.name}】Cards: {len(self.deck)} Pass: {self._passes}")
+		items=[v.name for v in self.deck]
+		if 0<self._passes: items.append(f"PS:{self._passes}")
+
+		print("考え中...",end="\r")
+		import time
+		time.sleep(1)
+
+		passCharge=0
+		while True:
+			cursor=random.randrange(len(items))
+
+			if 0<self._passes and len(items)-1==cursor:
+				if passCharge<3:
+					passCharge+=1
+					continue
+
+				self._passes-=1
+				print(f"パスー (残り{self._passes}回)\n")
+				break
+
+			elif field.tryUseCard(self,self.deck[cursor]):
+				print(f"これでも食らいなっ >「{items[cursor]}」\n")
+				if len(self.deck)==0:
+					print(f"{self.name}> おっさき～\n")
+					field.gameClear(self,index)
+				break
+
+			else: continue
+
 #メイン処理
 if __name__=="__main__":
 	for i in range(100):
@@ -363,6 +363,7 @@ if __name__=="__main__":
 			if field.checkGameEnd(): break
 		else:continue
 		break
+
 	field.view()
 	field.result(p)
 	input()
