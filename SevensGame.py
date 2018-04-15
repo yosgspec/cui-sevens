@@ -1,4 +1,4 @@
-from typing import List
+from typing import List,Iterator,Callable
 import random
 
 #全自動モード
@@ -15,14 +15,14 @@ class TrumpCard:
 	suits=4
 	powers=13
 
-	def __init__(self,suit:int,power:int):
+	def __init__(self,suit:int,power:int)->None:
 		self.name=TrumpCard.suitStrs[suit]+TrumpCard.powerStrs[power]
 		self.power=power
 		self.suit=suit
 
 #トランプの束クラス
 class TrumpDeck:
-	def trumpIter(self,deck:TrumpCard):
+	def trumpIter(self,deck:List[TrumpCard]):
 		for v in self.deck:
 			yield v
 
@@ -30,32 +30,33 @@ class TrumpDeck:
 	def count(self)->int:
 		return len(self.deck)
 
-	def __init__(self,jokers=0):
-		self.deck: List[TrumpCrad]=[]
+	def __init__(self,jokers=0)->None:
+		self.deck: List[TrumpCard]=[]
 		for suit in range(TrumpCard.suits):
 			for power in range(TrumpCard.powers):
 				self.deck.append(TrumpCard(suit,power))
 
 		while 0<jokers:
 			jokers-=1
-			deck.append(TrumpCard(TrumpCard.suits+jokers,TrumpCard.powers))
+			self.deck.append(TrumpCard(TrumpCard.suits+jokers,TrumpCard.powers))
 
 		self.__g: Iterator=self.trumpIter(self.deck)
 
 	def shuffle(self)->None:
 		random.shuffle(self.deck)
 
-	def draw(self)->None:
+	def draw(self)->TrumpCard:
 		return next(self.__g)
 
 #プレイヤークラス
 class Player:
-	def __init__(self,id:int,name:str):
+	def __init__(self,id:int,name:str)->None:
 		self.deck: List[TrumpCard]=[]
 		self.id=id
 		self.name=name
 		self.isGameOut=False
 
+	@staticmethod
 	def sortRefDeck(deck:List[TrumpCard])->None:
 		sortValue: Callable[[TrumpCard],int]=lambda v: v.suit*TrumpCard.powers+v.power
 		deck.sort(key=sortValue)
@@ -79,8 +80,8 @@ class Player:
 
 #トランプの場クラス
 class TrumpField:
-	def sortDeck(self)->None: Player.sortRefDeck(deck)
-	def __init__(self,players:Player):
+	def sortDeck(self)->None: Player.sortRefDeck(self.deck)
+	def __init__(self,players:List[Player])->None:
 		self.deck: List[TrumpCard]=[]
 		self._players=players
 
@@ -95,17 +96,17 @@ class TrumpField:
 class SevensLine:
 	__sevenIndex=6
 
-	def __init__(self):
+	def __init__(self)->None:
 		self.cardLine: List[bool]=[False for i in range(TrumpCard.powers)]
 		self.cardLine[SevensLine.__sevenIndex]=True
 
-	def rangeMin(self)->None:
+	def rangeMin(self)->int:
 		i: int
 		for i in range(SevensLine.__sevenIndex,-1,-1):
 			if not self.cardLine[i]: return i
 		return i
 
-	def rangeMax(self)->None:
+	def rangeMax(self)->int:
 		i: int
 		for i in range(SevensLine.__sevenIndex,TrumpCard.powers):
 			if not self.cardLine[i]: return i
@@ -128,7 +129,7 @@ class SevensLine:
 class Sevens(TrumpField):
 	__tenhoh=0xFF
 
-	def __init__(self,players:List[Player]):
+	def __init__(self,players:List[Player])->None:
 		super().__init__(players)
 		self.lines: List[SevensLine]=[SevensLine() for i in range(TrumpCard.suits)]
 		self.__rank: List[int]=[0 for i in self._players]
@@ -145,7 +146,7 @@ class Sevens(TrumpField):
 					self.useCard(p,card)
 					if len(p.deck)==0:
 						print(f"{p.name} 【-- 天和 --】\n")
-						rank[n]=tenhoh
+						self.__rank[n]=self.__tenhoh
 						p.gameOut()
 					break
 		print()
@@ -180,7 +181,7 @@ class Sevens(TrumpField):
 			self.useCard(player,player.deck[i])
 		player.gameOut()
 
-	def checkGameEnd(self)->None:
+	def checkGameEnd(self)->bool:
 		for v in self.__rank:
 			if v==0: return False
 		return True
@@ -248,7 +249,7 @@ def SelectCursor(items:List[str])->int:
 
 #七並べプレイヤークラス
 class SevensPlayer(Player):
-	def __init__(self,id:int,name:str,passes:int):
+	def __init__(self,id:int,name:str,passes:int)->None:
 		super().__init__(id,name)
 		self._passes=passes
 
@@ -287,7 +288,7 @@ class SevensPlayer(Player):
 
 #七並べAIプレイヤークラス
 class SevensAIPlayer(SevensPlayer):
-	def __init__(self,id,name,passes):
+	def __init__(self,id:int,name:str,passes:int)->None:
 		super().__init__(id,name,passes)
 
 	def selectCard(self,field:Sevens)->None:
@@ -341,7 +342,7 @@ if __name__=="__main__":
 """)
 	trp=TrumpDeck()
 	trp.shuffle()
-	p: List[Player]=[]
+	p: List[SevensPlayer]=[]
 	pid=0
 
 	if not AUTO_MODE:
@@ -361,7 +362,7 @@ if __name__=="__main__":
 	for v in p:
 		v.sortDeck()
 
-	field=Sevens(p)
+	field=Sevens([Player(v) for v in p])
 
 	while True:
 		field.view()
