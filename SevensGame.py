@@ -100,13 +100,13 @@ class SevensLine:
 		self.cardLine[SevensLine.__sevenIndex]=True
 
 	def rangeMin(self)->None:
-		i=0
+		i: int
 		for i in range(SevensLine.__sevenIndex,-1,-1):
 			if not self.cardLine[i]: return i
 		return i
 
 	def rangeMax(self)->None:
-		i=0
+		i: int
 		for i in range(SevensLine.__sevenIndex,TrumpCard.powers):
 			if not self.cardLine[i]: return i
 		return i
