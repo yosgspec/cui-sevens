@@ -13,7 +13,6 @@ class TrumpCard{
 		this.name=TrumpCard.suitStrs[suit]+TrumpCard.powerStrs[power];
 		this.power=power;
 		this.suit=suit
-	Object.freeze(this);
 	}
 }
 TrumpCard.suitStrs=["▲","▼","◆","■","Jo","JO"];
@@ -54,7 +53,7 @@ const TrumpDeck=(()=>{
 
 		shuffle(){
 			for(var i=0,imax=this[deck].length-1;i<imax;i=0|i+1){
-				var r=i+Math.floor(Math.random()*this[deck].length-i);
+				var r=0|i+Math.floor(Math.random()*this[deck].length-i);
 				var tmp=this[deck][i];
 				this[deck][i]=this[deck][r];
 				this[deck][r]=tmp;
@@ -107,7 +106,6 @@ const TrumpField=(()=>{
 		constructor(_players){
 			this.deck=[];
 			if(_players!==undefined) this[players]=_players;
-			Object.freeze(this.sortDeck);
 		}
 
 		useCard(player,card){
@@ -164,7 +162,7 @@ const SevensLine=(()=>{
 		useCard(power){
 			this.cardLine[power]=true;
 		}
-	}
+	};
 })();
 Object.freeze(SevensLine);
 
@@ -179,7 +177,7 @@ const Sevens=(()=>{
 			super();
 			this[players]=_players;
 			this.lines=Array(TrumpCard.suits).fill({}).map(v=>new SevensLine());
-			this[rank]=Array(this[players].length).fill(false);
+			this[rank]=Array(this[players].length).fill(0);
 			this.clearCount=0;
 
 			for(var i=0;i<TrumpCard.suits;i=i=0|i+1){
@@ -294,7 +292,7 @@ const SelectCursor=items=>{
 	var cursor=0;
 	//カーソルの移動
 	function move(x,max){
-		cursor+=x;
+		cursor=0|cursor+x;
 		if(cursor<0) cursor=0;
 		if(max-1<cursor) cursor=max-1;
 	}
@@ -436,8 +434,9 @@ Object.freeze(SevensAIPlayer);
 	for(var i=0;i<100;i=0|i+1){
 		console.log();
 	}
-console.log(
-`/---------------------------------------/
+
+	console.log(`
+/---------------------------------------/
 /                 七並べ                /
 /---------------------------------------/
 
@@ -450,12 +449,12 @@ console.log(
 	var pid=0;
 	if(!AUTO_MODE){
 		p.push(new SevensPlayer(pid,"Player",PASSES_NUMBER));
-		pid++;
+		pid=0|pid+1;
 	}
 
-	for(var i=0,imax=PLAYER_NUMBER-(AUTO_MODE?0:1);i<imax;i++){
+	for(var i=0,imax=PLAYER_NUMBER-(AUTO_MODE?0:1);i<imax;i=0|i+1){
 		p.push(new SevensAIPlayer(pid,`CPU ${i+1}`,PASSES_NUMBER));
-		pid++;
+		pid=0|pid+1;
 	}
 
 	for(var i=0,imax=trp.count;i<imax;i=0|i+1){

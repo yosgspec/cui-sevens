@@ -174,13 +174,12 @@ End Class
 Class Sevens
 	Inherits TrumpField
 	Const tenhoh=&HFF
-	Public ReadOnly lines As SevensLine()
+	Public ReadOnly lines As SevensLine()=Enumerable.Range(0,TrumpCard.suits).Select(Function(x) New SevensLine()).ToArray()
 	ReadOnly rank As Integer()
 	Public clearCount As Integer
 
 	Sub New(players As List(Of Player))
 		MyBase.New(players)
-		lines=Enumerable.Range(0,TrumpCard.suits).Select(Function(x) New SevensLine()).ToArray()
 		ReDim rank(Me.players.Count-1)
 		clearCount=0
 
@@ -340,7 +339,7 @@ Class SevensPlayer
 		End If
 
 		Console.WriteLine($"【{name}】Cards: {deck.Count} Pass: {passes}")
-		Dim items=New List(Of string)(deck.Select(Function(v) v.name))
+		Dim items As New List(Of string)(deck.Select(Function(v) v.name))
 		If 0<passes Then items.Add("PS:" & passes)
 
 		Do
@@ -387,7 +386,7 @@ Class SevensAIPlayer
 		End If
 
 		Console.WriteLine($"【{name}】Cards: {deck.Count} Pass: {passes}")
-		Dim items=new List(Of string)(deck.Select(Function(v) v.name))
+		Dim items As new List(Of string)(deck.Select(Function(v) v.name))
 		If 0<passes Then items.Add("PS:" & passes)
 
 		Console.Write($"考え中...{vbCr}")
@@ -430,13 +429,13 @@ Module Program
 			Console.WriteLine()
 		Next
 
-Console.WriteLine(
-$"/---------------------------------------/
+		Console.WriteLine($"
+/---------------------------------------/
 /                 七並べ                /
 /---------------------------------------/
 
 ")
-		Dim trp=New TrumpDeck()
+		Dim trp As New TrumpDeck()
 		trp.shuffle()
 
 		Dim p=new List(Of SevensPlayer)()
@@ -459,7 +458,7 @@ $"/---------------------------------------/
 			v.sortDeck()
 		Next
 
-		Dim field=New Sevens(p.Select(Function(v) CType(v,Player)).ToList())
+		Dim field As New Sevens(p.Select(Function(v) CType(v,Player)).ToList())
 
 		Do
 			field.view()

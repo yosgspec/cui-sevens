@@ -113,7 +113,7 @@ class TrumpField{
 	protected List<Player> players;
 	public readonly List<TrumpCard> deck=new List<TrumpCard>();
 	public void sortDeck(){Player.sortRefDeck(deck);}
-	
+
 	public TrumpField(List<Player> players){
 		this.players=players;
 	}
@@ -170,12 +170,11 @@ class SevensLine{
 //七並べクラス 
 class Sevens:TrumpField{
 	const int tenhoh=0xFF;
-	public readonly SevensLine[] lines;
+	public readonly SevensLine[] lines=Enumerable.Range(0,TrumpCard.suits).Select(x=>new SevensLine()).ToArray();
 	readonly int[] rank;
 	public int clearCount;
 	
 	public Sevens(List<Player> players):base(players){
-		lines=Enumerable.Range(0,TrumpCard.suits).Select(x=>new SevensLine()).ToArray();
 		rank=new int[this.players.Count];
 		clearCount=0;
 
@@ -418,8 +417,9 @@ class Program{
 		for(var i=0;i<100;i++){
 			Console.WriteLine();
 		}
-Console.WriteLine(
-@"/---------------------------------------/
+
+		Console.WriteLine(@"
+/---------------------------------------/
 /                 七並べ                /
 /---------------------------------------/
 
