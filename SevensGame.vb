@@ -90,7 +90,7 @@ Class Player
 		Dim sortValue As Func(Of TrumpCard,Integer)=Function(v) v.suit*TrumpCard.powers+v.power
 		deck.Sort(Function(a,b) sortValue(a)-sortValue(b))
 	End Sub
-	
+
 	Sub sortDeck()
 		sortRefDeck(deck):End Sub
 
