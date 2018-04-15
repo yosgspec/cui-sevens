@@ -2,11 +2,11 @@
 #cmpopt varinit 1
 
 ;全自動モード
-#const AUTO_MODE 0
+#const global AUTO_MODE 0
 ;プレイヤー人数
-#const PLAYER_NUMBER 4
+#const global PLAYER_NUMBER 4
 ;パス回数
-#const PASSES_NUMBER 3
+#const global PASSES_NUMBER 3
 
 ;トランプカードモジュール
 suitStrs@TrumpCard="▲","▼","◆","■","Jo","JO"
@@ -549,21 +549,21 @@ powerStrs@TrumpCard="Ａ","２","３","４","５","６","７","８","９","10","Ｊ","Ｑ",
 
 		new@TrumpDeck trp
 		tdShuffle trp
-		dimtype p,5,PLAYER_NUMBER@
+		dimtype p,5,PLAYER_NUMBER
 		pid=0
 
-		#if 1!AUTO_MODE@
+		#if 1!AUTO_MODE
 			mes "NAME[Player]: ",1
 			sdim playerName
 			input playerName,,2
 			if playerName=="": playerName="Player"
 
-			news@SevensPlayer p,pid,playerName,PASSES_NUMBER@
+			news@SevensPlayer p,pid,playerName,PASSES_NUMBER
 			pid++
 		#endif
 
-		repeat PLAYER_NUMBER@-(1!AUTO_MODE@),1
-			news@SevensAIPlayer p,pid,"CPU "+cnt,PASSES_NUMBER@
+		repeat PLAYER_NUMBER-(1!AUTO_MODE),1
+			news@SevensAIPlayer p,pid,"CPU "+cnt,PASSES_NUMBER
 			pid++
 		loop
 
