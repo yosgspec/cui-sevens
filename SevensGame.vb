@@ -44,16 +44,17 @@ Class TrumpDeck
 		Get
 			return deck.Count:End Get:End Property
 
-	Sub New()
+	Sub New(Optional jokers As Integer=0)
 		For suit=0 To TrumpCard.suits-1
 			For power=0 To TrumpCard.powers-1
 				deck.Add(New TrumpCard(suit,power))
 			Next
 		Next
 
-		' Joker
-		'deck.Add(New TrumpCard(4,TrumpCard.powers))
-		'deck.Add(New TrumpCard(5,TrumpCard.powers))
+		Do While 0<jokers
+			jokers-=1
+			deck.Add(New TrumpCard(TrumpCard.suits+jokers,TrumpCard.powers))
+		Loop
 
 		g=trumpIter(deck)
 	End Sub
@@ -437,11 +438,15 @@ Module Program
 ")
 		Dim trp As New TrumpDeck()
 		trp.shuffle()
-
 		Dim p=new List(Of SevensPlayer)()
 		Dim pid=0
+
 		If Not AUTO_MODE Then
-			p.Add(New SevensPlayer(pid,"Player",PASSES_NUMBER))
+			Console.Write("NAME[Player]: ")
+			Dim playerName=Console.ReadLine()
+			If playerName="" Then playerName="Player"
+
+			p.Add(New SevensPlayer(pid,playerName,PASSES_NUMBER))
 			pid+=1
 		End If
 

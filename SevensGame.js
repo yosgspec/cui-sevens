@@ -1,4 +1,9 @@
 "use strict";
+const readline=require("readline");
+readline.emitKeypressEvents(process.stdin);
+const rl=readline.createInterface({
+	input:process.stdin,output:process.stdout,prompt:"",terminal:false
+});
 
 //全自動モード
 const AUTO_MODE=false;
@@ -35,7 +40,7 @@ const TrumpDeck=(()=>{
 	return class{
 		get count(){return this[deck].length;}
 
-		constructor(){
+		constructor(jokers=0){
 			this[deck]=[];
 			for(var suit=0;suit<TrumpCard.suits;suit=0|suit+1){
 				for(var power=0;power<TrumpCard.powers;power=0|power+1){
@@ -43,10 +48,10 @@ const TrumpDeck=(()=>{
 				}
 			}
 
-			/* Joker
-			this[deck].push(new TrumpCard(4,TrumpCard.powers));
-			this[deck].push(new TrumpCard(5,TrumpCard.powers));
-			*/
+			while(0<jokers){
+				jokers=0|jokers-1;
+				this.deck.push(new TrumpCard(TrumpCard.suits+jokers,TrumpCard.powers));
+			}
 
 			this[g]=trumpIter(this[deck]);
 		}
@@ -287,7 +292,6 @@ const Sevens=(()=>{
 Object.freeze(Sevens);
 
 //カーソル選択関数
-require("readline").emitKeypressEvents(process.stdin);
 const SelectCursor=items=>{
 	var cursor=0;
 	//カーソルの移動
@@ -441,14 +445,18 @@ Object.freeze(SevensAIPlayer);
 /---------------------------------------/
 
 `);
-
 	const trp=new TrumpDeck();
 	trp.shuffle();
-
 	const p=[];
 	var pid=0;
+
 	if(!AUTO_MODE){
-		p.push(new SevensPlayer(pid,"Player",PASSES_NUMBER));
+		rl.setPrompt("NAME[Player]: ");
+		rl.prompt();
+		var playerName=await new Promise(res=>rl.once("line",res));
+		if(playerName=="") playerName="Player";
+
+		p.push(new SevensPlayer(pid,playerName,PASSES_NUMBER));
 		pid=0|pid+1;
 	}
 
@@ -477,6 +485,6 @@ Object.freeze(SevensAIPlayer);
 
 	field.view();
 	field.result();
-	process.stdin.setRawMode(true);
-	process.stdin.once("data",process.exit);
+	process.stdin.setRawMode(false);
+	rl.once("line",process.exit);
 })();

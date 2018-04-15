@@ -1,4 +1,9 @@
 "use strict";
+const readline=require("readline");
+readline.emitKeypressEvents(process.stdin);
+const rl=readline.createInterface({
+	input:process.stdin,output:process.stdout,prompt:"",terminal:false
+});
 
 //全自動モード
 const AUTO_MODE=false;
@@ -44,7 +49,7 @@ class TrumpDeck{
 
 		while(0<jokers){
 			jokers=0|jokers-1;
-			this.deck.push(new TrumpCard(4+jokers,TrumpCard.powers));
+			this.deck.push(new TrumpCard(TrumpCard.suits+jokers,TrumpCard.powers));
 		}
 
 		this.g=this.trumpIter(this.deck);
@@ -278,7 +283,6 @@ class Sevens extends TrumpField{
 }
 
 //カーソル選択関数
-require("readline").emitKeypressEvents(process.stdin);
 function SelectCursor(items):Promise<number>{
 	var cursor=0;
 	//カーソルの移動
@@ -423,14 +427,18 @@ class SevensAIPlayer extends SevensPlayer{
 /---------------------------------------/
 
 `);
-
 	const trp=new TrumpDeck();
 	trp.shuffle();
-
 	const p: SevensPlayer[]=[];
 	var pid=0;
+
 	if(!AUTO_MODE){
-		p.push(new SevensPlayer(pid,"Player",PASSES_NUMBER));
+		rl.setPrompt("NAME[Player]: ");
+		rl.prompt();
+		var playerName=""+(await new Promise(res=>rl.once("line",res)));
+		if(playerName=="") playerName="Player";
+
+		p.push(new SevensPlayer(pid,playerName,PASSES_NUMBER));
 		pid=0|pid+1;
 	}
 
@@ -459,6 +467,6 @@ class SevensAIPlayer extends SevensPlayer{
 
 	field.view();
 	field.result();
-	process.stdin.setRawMode(true);
-	process.stdin.once("data",process.exit);
+	process.stdin.setRawMode(false);
+	rl.once("line",process.exit);
 })();

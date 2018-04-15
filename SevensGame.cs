@@ -42,17 +42,17 @@ class TrumpDeck{
 		
 	public int count{get{return deck.Count;}}
 
-	public TrumpDeck(){
+	public TrumpDeck(int jokers=0){
 		for(var suit=0;suit<TrumpCard.suits;suit++){
 			for(var power=0;power<TrumpCard.powers;power++){
 				deck.Add(new TrumpCard(suit,power));
 			}
 		}
 
-		/* Joker
-		deck.Add(new TrumpCard(4,TrumpCard.powers));
-		deck.Add(new TrumpCard(5,TrumpCard.powers));
-		*/
+		while(0<jokers){
+			jokers++;
+			deck.Add(new TrumpCard(TrumpCard.suits+jokers,TrumpCard.powers));
+		}
 
 		g=trumpIter(deck);
 	}
@@ -424,14 +424,17 @@ class Program{
 /---------------------------------------/
 
 ");
-
 		var trp=new TrumpDeck();
 		trp.shuffle();
-
 		var p=new List<SevensPlayer>();
 		var pid=0;
+
 		if(!AUTO_MODE){
-			p.Add(new SevensPlayer(pid,"Player",PASSES_NUMBER));
+			Console.Write("NAME[Player]: ");
+			var playerName=Console.ReadLine();
+			if(playerName=="") playerName="Player";
+
+			p.Add(new SevensPlayer(pid,playerName,PASSES_NUMBER));
 			pid++;
 		}
 

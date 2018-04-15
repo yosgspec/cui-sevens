@@ -29,16 +29,15 @@ class TrumpDeck:
 	def count(self):
 		return len(self.deck)
 
-	def __init__(self):
+	def __init__(self,jokers=0):
 		self.deck=[]
 		for suit in range(TrumpCard.suits):
 			for power in range(TrumpCard.powers):
 				self.deck.append(TrumpCard(suit,power))
 
-		""" Joker
-		deck.Add(New TrumpCard(4,TrumpCard.powers))
-		deck.Add(New TrumpCard(5,TrumpCard.powers))
-		"""
+		while 0<jokers:
+			jokers-=1
+			deck.append(TrumpCard(TrumpCard.suits+jokers,TrumpCard.powers))
 
 		self.__g=self.trumpIter(self.deck)
 
@@ -339,14 +338,16 @@ if __name__=="__main__":
 /---------------------------------------/
 
 """)
-
 	trp=TrumpDeck()
 	trp.shuffle()
-
 	p=[]
 	pid=0
+
 	if not AUTO_MODE:
-		p.append(SevensPlayer(pid,"Player",PASS_NUMBER))
+		playerName=input("NAME[Player]: ")
+		if playerName=="": playerName="Player"
+
+		p.append(SevensPlayer(pid,playerName,PASS_NUMBER))
 		pid+=1
 
 	for i in range(PLAYER_NUMBER-(0 if AUTO_MODE else 1)):

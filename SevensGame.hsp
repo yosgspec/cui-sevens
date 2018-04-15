@@ -30,12 +30,13 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 #global
 
 ;ƒgƒ‰ƒ“ƒv‚Ì‘©ƒ‚ƒWƒ…[ƒ‹
-#module TrumpDeck g,i,deck,count,hash
+#module TrumpDeck g,i,deck,hash
 	#modcfunc tdCount
-		return count
+		return length(deck)
 
-	#define new(%1) dimtype %1,5:newmod %1,TrumpDeck
-	#modinit
+	#define new(%1,%2=0) dimtype %1,5:newmod %1,TrumpDeck,%2
+	#modinit int _jokers
+		jokers=_jokers
 		randomize
 		cardIndex=0
 
@@ -51,11 +52,10 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 			loop
 		loop
 
-		/* Joker
-		newCard 4,powers@TrumpCard
-		newCard 5,powers@TrumpCard
-		*/
-		count=cardIndex
+		while 0<jokers
+			jokers--
+			newCard suits@TrumpCard+jokers,powers@TrumpCard
+		wend
 
 		newlab g,1:return
 		gosub*trumpIter
@@ -71,7 +71,7 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 	return
 
 	*trumpIter
-		for i,0,count
+		for i,0,length(deck)
 			_card=deck(hash(i))
 			newlab g,1:return
 		next
@@ -549,11 +549,16 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 
 		new@TrumpDeck trp
 		tdShuffle trp
-
 		dimtype p,5,PLAYER_NUMBER@
 		pid=0
+
 		#if 1!AUTO_MODE@
-			news@SevensPlayer p,pid,"Player",PASSES_NUMBER@
+			mes "NAME[Player]: ",1
+			sdim playerName
+			input playerName,,2
+			if playerName=="": playerName="Player"
+
+			news@SevensPlayer p,pid,playerName,PASSES_NUMBER@
 			pid++
 		#endif
 
@@ -586,7 +591,7 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 		svView field
 		svResult field
 		sdim exit
-		input exit,,1
+		input exit,,2
 	return
 #global
 main
