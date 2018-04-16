@@ -18,9 +18,9 @@ class TrumpCard{
 	static readonly powerStrs=["Ａ","２","３","４","５","６","７","８","９","10","Ｊ","Ｑ","Ｋ","KR"];
 	static readonly suits=4;
 	static readonly powers=13;
-	public name: string;
-	public power: number;
-	public suit: number;
+	name: string;
+	power: number;
+	suit: number;
 	constructor(suit:number,power:number){
 		this.name=TrumpCard.suitStrs[suit]+TrumpCard.powerStrs[power];
 		this.power=power;
