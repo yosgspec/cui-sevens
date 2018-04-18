@@ -1,7 +1,6 @@
 Option Strict On
 Imports System.Collections.Generic
 Imports System.Linq
-Imports MyGlobal
 
 Module MyGlobal
 	'全自動モード

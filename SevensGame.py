@@ -362,7 +362,7 @@ if __name__=="__main__":
 	for v in p:
 		v.sortDeck()
 
-	field=Sevens([Player(v) for v in p])
+	field=Sevens()
 
 	while True:
 		field.view()
