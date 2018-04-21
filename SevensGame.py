@@ -232,18 +232,41 @@ def SelectCursor(items:List[str])->int:
 		print(f"{s}\r",end="")
 
 	view()
-	from msvcrt import getch
+	try:
+		from msvcrt import getch
+		keyCursor=0xe0
+		keyLeft=0x4b
+		keyRight=0x4d
+		getchLinux=False
+	except ImportError:
+		def getch():
+			import sys
+			import tty
+			import termios
+			fd=sys.stdin.fileno()
+			old=termios.tcgetattr(fd)
+			try:
+				tty.setraw(fd)
+				return sys.stdin.read(1)
+			finally:
+				termios.tcsetattr(fd,termios.TCSADRAIN,old)
+		keyCursor=0x1b
+		keyLeft=0x44
+		keyRight=0x43
+		getchLinux=True
+
 	while True:
 		ch=ord(getch())
 		if ch==0x0d:
 			print()
 			break
 
-		if ch==0xe0:
+		if ch==keyCursor:
+			if getchLinux: getch()
 			ch=ord(getch())
-			if ch==0x4b: move(-1,len(items))	#左
-			if ch==0x4d: move(1,len(items))		#右
-
+			if ch==keyLeft: move(-1,len(items))	#左
+			if ch==keyRight: move(1,len(items))	#右
+			
 		view()
 	return cursor
 
@@ -362,7 +385,7 @@ if __name__=="__main__":
 	for v in p:
 		v.sortDeck()
 
-	field=Sevens()
+	field=Sevens(p)
 
 	while True:
 		field.view()
