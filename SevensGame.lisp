@@ -357,7 +357,7 @@
 	(unless (checkPlayNext field self passes)
 		(gameOver field self)
 		(view field)
-		(format t "~A GameOver...~%" name);
+		(format t "~A GameOver...~%" name)
 		(return-from selectCard)
 	)
 	(format t "【~A】Cards: ~d Pass: ~d~%" name (length deck) passes)
@@ -374,7 +374,7 @@
 			)
 			(if(tryUseCard field self (nth cursor deck))(progn
 				(view field)
-				(format t "俺の切り札!! >「~A」~%" (aref items cursor))
+				(format t "俺の切り札!! >「~A」~%~%" (aref items cursor))
 				(when(= 0 (length deck))
 					(format t "~A Congratulations!!~%~%" name)
 					(gameClear field self)
@@ -394,7 +394,7 @@
 	(unless (checkPlayNext field self passes)
 		(gameOver field self)
 		(view field)
-		(format t "~A> もうだめ...~%" name);
+		(format t "~A> もうだめ...~%" name)
 		(return-from selectCard)
 	)
 	
@@ -404,7 +404,7 @@
 		(setf items (coerce items 'vector))
 
 		(format t "考え中...~A" #\return)
-		;(sleep 1)
+		(sleep 1)
 		(let ((passCharge 0))
 			(loop (let ((cursor (random (length items))))
 				(if(and(< 0 passes) (= cursor (1-(length items))))
@@ -418,7 +418,7 @@
 				(when(tryUseCard field self (nth cursor deck))
 					(format t "これでも食らいなっ >「~A」~%~%" (aref items cursor))
 					(when(= 0 (length deck))
-						(format t "~A> おっさき～~%~%" name)
+						(format t "~A> おっさき〜~%~%" name)
 						(gameClear field self)
 					)
 					(return)
@@ -451,7 +451,7 @@
 	(unless AUTO_MODE
 		(princ "NAME[Player]: ")
 		(let ((playerName (read-line)))
-			(when (string= "" playerName) (setf playerName "Player"))
+			(when(string= "" playerName) (setf playerName "Player"))
 
 			(push (make-instance 'SevensPlayer :id pid :name playerName :passes PASS_NUMBER) p)
 			(incf pid)

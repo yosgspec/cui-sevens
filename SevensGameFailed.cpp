@@ -63,8 +63,8 @@ public:
 		std::shuffle(deck.begin(),deck.end(),rnd);
 	}
 
-	TrumpCard draw(){
-		return deck[g++];
+	TrumpCard* draw(){
+		return &deck[g++];
 	}
 };
 mt19937 TrumpDeck::rnd([]{
@@ -75,7 +75,7 @@ mt19937 TrumpDeck::rnd([]{
 //プレイヤークラス
 class Player{
 public:
-	vector<TrumpCard> deck;
+	vector<TrumpCard*> deck;
 	int id;
 	string name;
 	bool isGameOut=false;
@@ -85,22 +85,22 @@ public:
 		this->name=name;
 	}
 
-	static void sortRefDeck(vector<TrumpCard> deck){
+	static void sortRefDeck(vector<TrumpCard*> deck){
 		auto sortValue=[](TrumpCard v){return v.suit*TrumpCard::powers+v.power;};
-		sort(deck.begin(),deck.end(),[&sortValue](TrumpCard a,TrumpCard b){
+		sort(*deck.begin(),*deck.end(),[&sortValue](TrumpCard a,TrumpCard b){
 			return sortValue(a)-sortValue(b);
 		});
 	}
 
 	void sortDeck(){sortRefDeck(deck);}
 
-	void addCard(TrumpCard card){
+	void addCard(TrumpCard* card){
 		deck.push_back(card);
 	}
 
 	void removeCard(string cardName){
 		for(int i=0;i<deck.size();i++){
-			if(deck[i].name==cardName){
+			if(deck[i]->name==cardName){
 				deck.erase(deck.begin()+i);
 				return;
 			}
@@ -110,7 +110,7 @@ public:
 	int existCard(string cardName){
 		int existCard=-1;
 		for(int i=0;i<deck.size();i++){
-			if(deck[i].name==cardName){
+			if(deck[i]->name==cardName){
 				existCard=i;
 				break;
 			}
@@ -126,7 +126,7 @@ public:
 //トランプの場クラス
 class TrumpField{
 public:
-	vector<TrumpCard> deck;
+	vector<TrumpCard*> deck;
 	vector<Player> players;
 	void sortDeck(){Player::sortRefDeck(deck);}
 
@@ -134,15 +134,15 @@ public:
 		this->players=players;
 	}
 
-	virtual void useCard(Player player,TrumpCard card){
+	virtual void useCard(Player player,TrumpCard* card){
 		deck.push_back(card);
-		player.removeCard(card.name);
+		player.removeCard(card->name);
 	}
 
 	virtual void view(){
 		string s="";
 		for(auto v:deck){
-			s+=v.name;
+			s+=v->name;
 		}
 		cout<<s<<endl;
 	}
@@ -213,7 +213,7 @@ public:
 				auto cardSevenIndex=p.existCard(cardSevenName);
 				if(-1<cardSevenIndex){
 					auto card=p.deck[cardSevenIndex];
-					cout<<p.name<<" が"<<card.name<<"を置きました。"<<endl;
+					cout<<p.name<<" が"<<card->name<<"を置きました。"<<endl;
 					useCard(p,card);
 					if(p.deck.size()==0){
 						cout<<p.name<<" 【-- 天和 --】\n"<<endl;
@@ -227,16 +227,16 @@ public:
 		cout<<endl;
 	}
 
-	virtual public void useCard(Player& player,TrumpCard card){
-		lines[card.suit].useCard(card.power);
+	virtual public void useCard(Player& player,TrumpCard* card){
+		lines[card->suit].useCard(card->power);
 		TrumpField::useCard(player,card);
 	}
 
-	virtual public bool checkUseCard(TrumpCard card){
-		return lines[card.suit].checkUseCard(card.power);
+	virtual public bool checkUseCard(TrumpCard* card){
+		return lines[card->suit].checkUseCard(card->power);
 	}
 
-	virtual public bool tryUseCard(Player& player,TrumpCard card){
+	virtual public bool tryUseCard(Player& player,TrumpCard* card){
 		if(!checkUseCard(card)) return false;
 		useCard(player,card);
 		return true;
@@ -367,7 +367,7 @@ public:
 
 		cout<<"【"<<name<<"】Cards: "<<deck.size()<<"} Pass: "<<passes<<endl;
 		vector<string> items;
-		for(auto v:deck) items.push_back(v.name);
+		for(auto v:deck) items.push_back(v->name);
 		if(0<passes) items.push_back("PS:"+to_string(passes));
 
 		for(;;){
@@ -411,7 +411,7 @@ public:
 
 		cout<<"【"<<name<<"】Cards: "<<deck.size()<<"} Pass: "<<passes<<endl;
 		vector<string> items;
-		for(auto v:deck) items.push_back(v.name);
+		for(auto v:deck) items.push_back(v->name);
 		if(0<passes) items.push_back("PS:"+to_string(passes));
 
 

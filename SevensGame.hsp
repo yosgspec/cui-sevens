@@ -405,7 +405,7 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 			ch=getch()
 			if ch=$0d {
 				mes
-				break
+			s	break
 			}
 			if ch=$e0 {
 				ch=getch()
