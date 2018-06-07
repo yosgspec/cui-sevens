@@ -1,5 +1,5 @@
 ;全自動モード
-(def AUTO_MODE true)
+(def AUTO_MODE false)
 ;プレイヤー人数
 (def PLAYER_NUMBER 4)
 ;パス回数
