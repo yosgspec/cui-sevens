@@ -389,7 +389,6 @@
 			(let [items (vec(map #(:name %) @deck))]
 			(let [items (if(< 0 @passes) (conj items (str "PS:" @passes)) items)]
 				(loop[cursor (SelectCursor items)]
-					(println cursor)
 					(if(and(< 0 @passes) (= cursor (dec(count items))))(do
 						(vswap! passes dec)
 						(view field)
