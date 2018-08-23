@@ -53,7 +53,7 @@
 		)
 	)
 
-	(loop while (< 0 jokers) do
+	(loop while(< 0 jokers) do
 		(decf jokers)
 		(push (make-instance 'TrumpCard :suit (+ TrumpCard-suits jokers) :power TrumpCard-powers) deck)
 	)
