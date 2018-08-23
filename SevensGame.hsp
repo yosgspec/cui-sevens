@@ -556,7 +556,7 @@ powerStrs@TrumpCard="‚`","‚Q","‚R","‚S","‚T","‚U","‚V","‚W","‚X","10","‚i","‚p",
 			mes "NAME[Player]: ",1
 			sdim playerName
 			input playerName,,2
-			if playerName=="": playerName="Player"
+			if playerName="": playerName="Player"
 
 			news@SevensPlayer p,pid,playerName,PASSES_NUMBER
 			pid++
