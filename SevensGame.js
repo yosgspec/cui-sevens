@@ -27,55 +27,53 @@ TrumpCard.powers=13;
 Object.freeze(TrumpCard);
 
 //トランプの束クラス
-const TrumpDeck=(()=>{
-	const g=Symbol();
-	const deck=Symbol();
+class TrumpDeck{
+	#deck=[];
+	#g;
 
-	const trumpIter=function*(deck){
-		for(var v of deck){
+	#trumpIter=function*(deck){
+		for(let v of deck){
 			yield v;
+		}
+	};
+
+	get count(){return this.#deck.length;}
+
+	constructor(jokers=0){
+		for(let suit=0;suit<TrumpCard.suits;suit=0|suit+1){
+			for(let power=0;power<TrumpCard.powers;power=0|power+1){
+				this.#deck.push(new TrumpCard(suit,power));
+			}
+		}
+
+		while(0<jokers){
+			jokers=0|jokers-1;
+			this.#deck.push(new TrumpCard(TrumpCard.suits+jokers,TrumpCard.powers));
+		}
+
+		this.#g=this.#trumpIter(this.#deck);
+	}
+
+	shuffle(){
+		for(let i=0,imax=this.#deck.length-1;i<imax;i=0|i+1){
+			let r=0|i+Math.floor(Math.random()*this.#deck.length-i);
+			let tmp=this.#deck[i];
+			this.#deck[i]=this.#deck[r];
+			this.#deck[r]=tmp;
 		}
 	}
 
-	return class{
-		get count(){return this[deck].length;}
-
-		constructor(jokers=0){
-			this[deck]=[];
-			for(var suit=0;suit<TrumpCard.suits;suit=0|suit+1){
-				for(var power=0;power<TrumpCard.powers;power=0|power+1){
-					this[deck].push(new TrumpCard(suit,power));
-				}
-			}
-
-			while(0<jokers){
-				jokers=0|jokers-1;
-				this.deck.push(new TrumpCard(TrumpCard.suits+jokers,TrumpCard.powers));
-			}
-
-			this[g]=trumpIter(this[deck]);
-		}
-
-		shuffle(){
-			for(var i=0,imax=this[deck].length-1;i<imax;i=0|i+1){
-				var r=0|i+Math.floor(Math.random()*this[deck].length-i);
-				var tmp=this[deck][i];
-				this[deck][i]=this[deck][r];
-				this[deck][r]=tmp;
-			}
-		}
-
-		draw(){
-			return this[g].next().value;
-		}
-	};
-})();
+	draw(){
+		return this.#g.next().value;
+	}
+}
 Object.freeze(TrumpDeck);
 
 //プレイヤークラス
 class Player{
+	deck=[];
+
 	constructor(id,name){
-		this.deck=[];
 		this.id=id;
 		this.name=name;
 		this.isGameOut=false;
@@ -105,190 +103,185 @@ class Player{
 Object.freeze(Player);
 
 //トランプの場クラス
-const TrumpField=(()=>{
-	const players=Symbol();
-	return class{
-		constructor(_players){
-			this.deck=[];
-			if(_players!==undefined) this[players]=_players;
-		}
+class TrumpField{
+	#players=[];
+	deck=[];
 
-		useCard(player,card){
-			this.deck.push(card);
-			player.removeCard(card.name);
-		}
+	constructor(players){
+		this.#players=players;
+	}
 
-		view(){
-			console.log(this.deck.map(v=>v.name).join(" "));
-		}
-	};
-})();
+	useCard(player,card){
+		this.deck.push(card);
+		player.removeCard(card.name);
+	}
+
+	view(){
+		console.log(this.deck.map(v=>v.name).join(" "));
+	}
+}
 TrumpField.prototype.sortDeck=Player.prototype.sortDeck;
 Object.freeze(TrumpField);
 
 //七並べの列クラス
-const SevensLine=(()=>{
-	const sevenIndex=6;
+class SevensLine{
+	static #sevenIndex=6;
 
-	return class{
-		constructor(){
-			this.cardLine=Array(TrumpCard.powers).fill(false);
-			this.cardLine[sevenIndex]=true;
-		}
+	constructor(){
+		this.cardLine=Array(TrumpCard.powers).fill(false);
+		this.cardLine[SevensLine.#sevenIndex]=true;
+	}
 
-		rangeMin(){
-			var i;
-			for(i=sevenIndex;0<=i;i=0|i-1){
-				if(!this.cardLine[i]) return i;
-			}
-			return i;
+	rangeMin(){
+		var i;
+		for(i=SevensLine.#sevenIndex;0<=i;i=0|i-1){
+			if(!this.cardLine[i]) return i;
 		}
+		return i;
+	}
 
-		rangeMax(){
-			var i;
-			for(i=sevenIndex;i<TrumpCard.powers;i=0|i+1){
-				if(!this.cardLine[i]) return i;
-			}
-			return i;
+	rangeMax(){
+		var i;
+		for(i=SevensLine.#sevenIndex;i<TrumpCard.powers;i=0|i+1){
+			if(!this.cardLine[i]) return i;
 		}
+		return i;
+	}
 
-		checkUseCard(power){
-			switch(power){
-				case TrumpCard.powers:
-					return true;
-				case this.rangeMin():
-				case this.rangeMax():
-					return true;
-				default:
-					return false;
-			}
+	checkUseCard(power){
+		switch(power){
+			case TrumpCard.powers:
+				return true;
+			case this.rangeMin():
+			case this.rangeMax():
+				return true;
+			default:
+				return false;
 		}
+	}
 
-		useCard(power){
-			this.cardLine[power]=true;
-		}
-	};
-})();
+	useCard(power){
+		this.cardLine[power]=true;
+	}
+}
 Object.freeze(SevensLine);
 
 //七並べクラス 
-const Sevens=(()=>{
-	const tenhoh=0xFF;
-	const players=Symbol();
-	const rank=Symbol();
+class Sevens extends TrumpField{
+	static #tenhoh=0xFF;
+	#players;
+	#rank;
 
-	return class extends TrumpField{
-		constructor(_players){
-			super();
-			this[players]=_players;
-			this.lines=Array(TrumpCard.suits).fill({}).map(v=>new SevensLine());
-			this[rank]=Array(this[players].length).fill(0);
-			this.clearCount=0;
+	constructor(player){
+		super();
+		this.#players=player;
+		this.lines=Array(TrumpCard.suits).fill({}).map(v=>new SevensLine());
+		this.#rank=Array(this.#players.length).fill(0);
+		this.clearCount=0;
 
-			for(var i=0;i<TrumpCard.suits;i=i=0|i+1){
-				var cardSevenName=TrumpCard.suitStrs[i]+TrumpCard.powerStrs[6];
-				for(var n in this[players]){
-					var p=this[players][n];
-					var cardSevenIndex=p.existCard(cardSevenName);
-					if(-1<cardSevenIndex){
-						var card=p.deck[cardSevenIndex];
-						console.log(`${p.name} が${card.name}を置きました。`);
-						this.useCard(p,card);
-						if(p.deck.length==0){
-							console.log(`${p.name} 【-- 天和 --】\n`);
-							this[rank][n]=tenhoh;
-							p.gameOut();
-						}
-						break;
+		for(let i=0;i<TrumpCard.suits;i=i=0|i+1){
+			let cardSevenName=TrumpCard.suitStrs[i]+TrumpCard.powerStrs[6];
+			for(let n in this.#players){
+				let p=this.#players[n];
+				let cardSevenIndex=p.existCard(cardSevenName);
+				if(-1<cardSevenIndex){
+					let card=p.deck[cardSevenIndex];
+					console.log(`${p.name} が${card.name}を置きました。`);
+					this.useCard(p,card);
+					if(p.deck.length==0){
+						console.log(`${p.name} 【-- 天和 --】\n`);
+						this.#rank[n]=Sevens.#tenhoh;
+						p.gameOut();
 					}
+					break;
 				}
 			}
-			console.log();
 		}
+		console.log();
+	}
 
-		useCard(player,card){
-			this.lines[card.suit].useCard(card.power);
-			super.useCard(player,card);
-		}
+	useCard(player,card){
+		this.lines[card.suit].useCard(card.power);
+		super.useCard(player,card);
+	}
 
-		checkUseCard(card){
-			return this.lines[card.suit].checkUseCard(card.power);
-		}
+	checkUseCard(card){
+		return this.lines[card.suit].checkUseCard(card.power);
+	}
 
-		tryUseCard(player,card){
-			if(!this.checkUseCard(card)) return false;
-			this.useCard(player,card);
-			return true;
-		}
+	tryUseCard(player,card){
+		if(!this.checkUseCard(card)) return false;
+		this.useCard(player,card);
+		return true;
+	}
 
-		checkPlayNext(player,passes){
-			if(0<passes) return true;
-			for(var card of player.deck){
-				if(this.checkUseCard(card)){
-					return true;
-				}
+	checkPlayNext(player,passes){
+		if(0<passes) return true;
+		for(let card of player.deck){
+			if(this.checkUseCard(card)){
+				return true;
 			}
-			return false;
 		}
+		return false;
+	}
 
-		gameClear(player){
-			this.clearCount=0|this.clearCount+1;
-			this[rank][player.id]=this.clearCount;
-			player.gameOut();
+	gameClear(player){
+		this.clearCount=0|this.clearCount+1;
+		this.#rank[player.id]=this.clearCount;
+		player.gameOut();
+	}
+
+	gameOver(player){
+		this.#rank[player.id]=-1;
+		for(let i=player.deck.length-1;i>=0;i=0|i-1){
+			this.useCard(player,player.deck[i]);
 		}
+		player.gameOut();
+	}
 
-		gameOver(player){
-			this[rank][player.id]=-1;
-			for(var i=player.deck.length-1;i>=0;i=0|i-1){
-				this.useCard(player,player.deck[i]);
-			}
-			player.gameOut();
+	checkGameEnd(){
+		for(let v of this.#rank){
+			if(v==0) return false;
 		}
+		return true;
+	}
 
-		checkGameEnd(){
-			for(var v of this[rank]){
-				if(v==0) return false;
-			}
-			return true;
-		}
-
-		view(){
-			var s="";
-			for(var i=0;i<TrumpCard.suits;i=0|i+1){
-				var ss="";
-				for(var n=0;n<TrumpCard.powers;n=0|n+1){
-					if(this.lines[i].cardLine[n]){
-						s+=TrumpCard.suitStrs[i];
-						ss+=TrumpCard.powerStrs[n];
-					}
-					else{
-						s+="◇";
-						ss+="◇";
-					}
-				}
-				s+="\n"+ss+"\n";
-			}
-			console.log(s);
-		}
-
-		result(){
-			console.log("\n【Game Result】");
-			var rankStr;
-			for(var i in this[rank]){
-				if(rank[i]==tenhoh){
-					rankStr="天和";
-				}
-				else if(0<this[rank][i]){
-					rankStr=`${this[rank][i]}位`;
+	view(){
+		var s="";
+		for(let i=0;i<TrumpCard.suits;i=0|i+1){
+			let ss="";
+			for(let n=0;n<TrumpCard.powers;n=0|n+1){
+				if(this.lines[i].cardLine[n]){
+					s+=TrumpCard.suitStrs[i];
+					ss+=TrumpCard.powerStrs[n];
 				}
 				else{
-					rankStr="GameOver...";
+					s+="◇";
+					ss+="◇";
 				}
-				console.log(`${this[players][i].name}: ${rankStr}`);
 			}
+			s+="\n"+ss+"\n";
 		}
-	};
-})();
+		console.log(s);
+	}
+
+	result(){
+		console.log("\n【Game Result】");
+		var rankStr;
+		for(let i in this.#rank){
+			if(this.#rank[i]==Sevens.#tenhoh){
+				rankStr="天和";
+			}
+			else if(0<this.#rank[i]){
+				rankStr=`${this.#rank[i]}位`;
+			}
+			else{
+				rankStr="GameOver...";
+			}
+			console.log(`${this.#players[i].name}: ${rankStr}`);
+		}
+	}
+}
 Object.freeze(Sevens);
 
 //カーソル選択関数
@@ -306,7 +299,7 @@ const SelectCursor=items=>{
 		const select=Array(items.length).fill(false);
 		select[cursor]=true;
 		var s="";
-		for(var i in select){
+		for(let i in select){
 			s+=select[i]? `[${items[i]}]`: `${items[i]}`;
 		}
 		process.stdout.write(`${s}\r`);
@@ -326,116 +319,114 @@ const SelectCursor=items=>{
 			view();
 		});
 	});
-};
+}
 Object.freeze(SelectCursor);
 
 //七並べプレイヤークラス
-const SevensPlayer=(()=>{
-	const passes=Symbol();
-	return class extends Player{
-		constructor(id,name,_passes){
-			super(id,name);
-			if(_passes!==undefined) this[passes]=_passes;
+class SevensPlayer extends Player{
+	#passes;
+
+	constructor(id,name,passes){
+		super(id,name);
+		if(passes!==undefined) this.#passes=passes;
+	}
+
+	async selectCard(field){
+		if(this.isGameOut) return;
+		if(!field.checkPlayNext(this,this.#passes)){
+			field.gameOver(this);
+			field.view();
+			console.log(`${this.name} GameOver...\n`);
+			return;
 		}
 
-		async selectCard(field){
-			if(this.isGameOut) return;
-			if(!field.checkPlayNext(this,this[passes])){
-				field.gameOver(this);
+		console.log(`【${this.name}】Cards: ${this.deck.length} Pass: ${this.#passes}`);
+		var items=this.deck.map(v=>v.name);
+		if(0<this.#passes) items.push("PS:"+this.#passes);
+
+		for(;;){
+			let cursor=await SelectCursor(items);
+
+			if(0<this.#passes && items.length-1==cursor){
+				this.#passes=0|this.#passes-1;
 				field.view();
-				console.log(`${this.name} GameOver...\n`);
-				return;
+				console.log(`残りパスは${this.#passes}回です。\n`);
+				break;
 			}
-
-			console.log(`【${this.name}】Cards: ${this.deck.length} Pass: ${this[passes]}`);
-			var items=this.deck.map(v=>v.name);
-			if(0<this[passes]) items.push("PS:"+this[passes]);
-
-			for(;;){
-				var cursor=await SelectCursor(items);
-
-				if(0<this[passes] && items.length-1==cursor){
-					this[passes]=0|this[passes]-1;
-					field.view();
-					console.log(`残りパスは${this[passes]}回です。\n`);
-					break;
+			else if(field.tryUseCard(this,this.deck[cursor])){
+				field.view();
+				console.log(`俺の切り札!! >「${items[cursor]}」\n`);
+				if(this.deck.length==0){
+					console.log(`${this.name} Congratulations!!\n`);
+					field.gameClear(this);
 				}
-				else if(field.tryUseCard(this,this.deck[cursor])){
-					field.view();
-					console.log(`俺の切り札!! >「${items[cursor]}」\n`);
-					if(this.deck.length==0){
-						console.log(`${this.name} Congratulations!!\n`);
-						field.gameClear(this);
-					}
-					break;
-				}
-				else{
-					console.log("そのカードは出せないのじゃ…\n");
-					continue;
-				}
+				break;
+			}
+			else{
+				console.log("そのカードは出せないのじゃ…\n");
+				continue;
 			}
 		}
-	};
-})();
+	}
+}
 Object.freeze(SevensPlayer);
 
 //七並べAIプレイヤークラス
-const SevensAIPlayer=(()=>{
-	const passes=Symbol();
-	return class extends SevensPlayer{
-		constructor(id,name,_passes){
-			super(id,name);
-			this[passes]=_passes;
+class SevensAIPlayer extends SevensPlayer{
+	#passes;
+
+	constructor(id,name,passes){
+		super(id,name);
+		this.#passes=passes;
+	}
+
+	async selectCard(field){
+		if(this.isGameOut) return;
+		if(!field.checkPlayNext(this,this.#passes)){
+			field.gameOver(this);
+			field.view();
+			console.log(`${this.name}> もうだめ...\n`);
+			return;
 		}
 
-		async selectCard(field){
-			if(this.isGameOut) return;
-			if(!field.checkPlayNext(this,this[passes])){
-				field.gameOver(this);
-				field.view();
-				console.log(`${this.name}> もうだめ...\n`);
-				return;
-			}
+		console.log(`【${this.name}】Cards: ${this.deck.length} Pass: ${this.#passes}`);
+		var items=this.deck.map(v=>v.name);
+		if(0<this.#passes) items.push("PS:"+this.#passes);
 
-			console.log(`【${this.name}】Cards: ${this.deck.length} Pass: ${this[passes]}`);
-			var items=this.deck.map(v=>v.name);
-			if(0<this[passes]) items.push("PS:"+this[passes]);
+		process.stdout.write("考え中...\r");
+		await new Promise(res=>setTimeout(res,1000));
 
-			process.stdout.write("考え中...\r");
-			await new Promise(res=>setTimeout(res,1000));
+		var passCharge=0;
 
-			var passCharge=0;
+		for(;;){
+			let cursor=Math.floor(Math.random()*items.length);
 
-			for(;;){
-				var cursor=Math.floor(Math.random()*items.length);
-
-				if(0<this[passes] && items.length-1==cursor){
-					if(passCharge<3){
-						passCharge=0|passCharge+1;
-						continue;
-					}
-					this[passes]=0|this[passes]-1;
-					console.log(`パスー (残り${this[passes]}回)\n`);
-					break;
+			if(0<this.#passes && items.length-1==cursor){
+				if(passCharge<3){
+					passCharge=0|passCharge+1;
+					continue;
 				}
-				else if(field.tryUseCard(this,this.deck[cursor])){
-					console.log(`これでも食らいなっ >「${items[cursor]}」\n`);
-					if(this.deck.length==0){
-						console.log(`${this.name}> おっさき～\n`);
-						field.gameClear(this);
-					}
-					break;
-				}
-				else continue;
+				this.#passes=0|this.#passes-1;
+				console.log(`パスー (残り${this.#passes}回)\n`);
+				break;
 			}
+			else if(field.tryUseCard(this,this.deck[cursor])){
+				console.log(`これでも食らいなっ >「${items[cursor]}」\n`);
+				if(this.deck.length==0){
+					console.log(`${this.name}> おっさき～\n`);
+					field.gameClear(this);
+				}
+				break;
+			}
+			else continue;
 		}
-	};
-})();
+	}
+}
 Object.freeze(SevensAIPlayer);
 
 //メイン処理
-(async function(){
-	for(var i=0;i<100;i=0|i+1){
+const g=async function*(res){
+	for(let i=0;i<100;i=0|i+1){
 		console.log();
 	}
 
@@ -453,23 +444,23 @@ Object.freeze(SevensAIPlayer);
 	if(!AUTO_MODE){
 		rl.setPrompt("NAME[Player]: ");
 		rl.prompt();
-		var playerName=await new Promise(res=>rl.once("line",res));
+		let playerName=yield rl.once("line",res);
 		if(playerName=="") playerName="Player";
 
 		p.push(new SevensPlayer(pid,playerName,PASSES_NUMBER));
 		pid=0|pid+1;
 	}
 
-	for(var i=0,imax=PLAYER_NUMBER-(AUTO_MODE?0:1);i<imax;i=0|i+1){
+	for(let i=0,imax=PLAYER_NUMBER-(AUTO_MODE?0:1);i<imax;i=0|i+1){
 		p.push(new SevensAIPlayer(pid,`CPU ${i+1}`,PASSES_NUMBER));
 		pid=0|pid+1;
 	}
 
-	for(var i=0,imax=trp.count;i<imax;i=0|i+1){
+	for(let i=0,imax=trp.count;i<imax;i=0|i+1){
 		p[i%PLAYER_NUMBER].addCard(trp.draw());
 	}
 
-	for(var v of p){
+	for(let v of p){
 		v.sortDeck();
 	}
 
@@ -477,7 +468,7 @@ Object.freeze(SevensAIPlayer);
 
 	selectLoop:for(;;){
 		field.view();
-		for(var v of p){
+		for(let v of p){
 			await v.selectCard(field);
 			if(field.checkGameEnd()) break selectLoop;
 		}
@@ -486,5 +477,6 @@ Object.freeze(SevensAIPlayer);
 	field.view();
 	field.result();
 	process.stdin.setRawMode(false);
-	rl.once("line",process.exit);
-})();
+	rl.once("line",rl.close);
+}(v=>g.next(v));
+g.next();
